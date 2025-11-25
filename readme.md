@@ -1,15 +1,33 @@
-[![NuGet](https://img.shields.io/nuget/v/Avalonia.Controls.DataGrid.svg)](https://www.nuget.org/packages/Avalonia.Controls.DataGrid/)
+[![NuGet](https://img.shields.io/nuget/v/ProDataGrid.svg)](https://www.nuget.org/packages/ProDataGrid/)
 
-# Avalonia DataGrid
+# ProDataGrid
 
 ## About
 
-The official `DataGrid` control for [Avalonia](https://github.com/AvaloniaUI/Avalonia).  
+`ProDataGrid` is a hard fork of the original `Avalonia.Controls.DataGrid` control for [Avalonia](https://github.com/AvaloniaUI/Avalonia).
 
-It displays repeating data in a customizable grid.  
-See the [documentation](https://docs.avaloniaui.net/docs/reference/controls/datagrid/) for more information.
+It displays repeating data in a customizable grid with enhanced features and improved performance.
 
-## Status
+## Package Rename
 
-The `DataGrid` control was initially ported from Silverlight, and was previously part of the [Avalonia main repository](https://github.com/AvaloniaUI/Avalonia).  
-It now lives in its [own repository](https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid): see [this discussion](https://github.com/AvaloniaUI/Avalonia/discussions/18388) for details.
+This package has been renamed from `Avalonia.Controls.DataGrid` to `ProDataGrid`.
+
+The new hard fork lives at: https://github.com/wieslawsoltes/ProDataGrid
+
+### Migration
+
+To migrate from the original package, update your NuGet reference:
+
+```xml
+<!-- Old -->
+<PackageReference Include="Avalonia.Controls.DataGrid" Version="..." />
+
+<!-- New -->
+<PackageReference Include="ProDataGrid" Version="..." />
+```
+
+## License
+
+ProDataGrid is licensed under the [MIT License](licence.md).
+
+The original Avalonia.Controls.DataGrid license is preserved in [licence-avalonia.md](licence-avalonia.md).
