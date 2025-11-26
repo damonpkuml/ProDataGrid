@@ -391,9 +391,9 @@ namespace Avalonia.Controls
 
                 EnsureRowGroupSpacerColumn();
 
-                if (VerticalScrollBar != null)
+                if (HasLegacyVerticalScrollBar)
                 {
-                    DisplayData.PendingVerticalScrollHeight = Math.Min(verticalOffset, VerticalScrollBar.Maximum);
+                    DisplayData.PendingVerticalScrollHeight = Math.Min(verticalOffset, GetLegacyVerticalScrollMaximum());
                 }
             }
             else

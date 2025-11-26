@@ -359,6 +359,57 @@ namespace Avalonia.Controls
         /// </summary>
         private bool IsLegacyVerticalScrollBarVisible => _vScrollBar?.IsVisible ?? false;
 
+        /// <summary>
+        /// Returns true if legacy horizontal scroll bar is available.
+        /// </summary>
+        internal bool HasLegacyHorizontalScrollBar => _hScrollBar != null;
+
+        /// <summary>
+        /// Returns true if the legacy horizontal scroll bar is visible.
+        /// </summary>
+        internal bool IsLegacyHorizontalScrollBarVisible => _hScrollBar?.IsVisible ?? false;
+
+        /// <summary>
+        /// Gets the maximum horizontal scroll value from the legacy scroll bar.
+        /// Returns 0 if legacy scroll bars are not available.
+        /// </summary>
+        internal double GetLegacyHorizontalScrollMaximum()
+        {
+            return _hScrollBar?.Maximum ?? 0;
+        }
+
+        /// <summary>
+        /// Attempts to scroll left during column drag operations.
+        /// Returns the actual scroll amount applied, or 0 if scrolling not possible.
+        /// </summary>
+        internal double TryScrollLeftForColumnDrag(double requestedAmount)
+        {
+            if (_hScrollBar == null || !_hScrollBar.IsVisible || _hScrollBar.Value <= 0)
+            {
+                return 0;
+            }
+            
+            double scrollAmount = Math.Min(requestedAmount, _hScrollBar.Value);
+            UpdateHorizontalOffset(scrollAmount + _hScrollBar.Value);
+            return scrollAmount;
+        }
+
+        /// <summary>
+        /// Attempts to scroll right during column drag operations.
+        /// Returns the actual scroll amount applied, or 0 if scrolling not possible.
+        /// </summary>
+        internal double TryScrollRightForColumnDrag(double requestedAmount)
+        {
+            if (_hScrollBar == null || !_hScrollBar.IsVisible || _hScrollBar.Value >= _hScrollBar.Maximum)
+            {
+                return 0;
+            }
+            
+            double scrollAmount = Math.Min(requestedAmount, _hScrollBar.Maximum - _hScrollBar.Value);
+            UpdateHorizontalOffset(scrollAmount + _hScrollBar.Value);
+            return scrollAmount;
+        }
+
         #endregion
 
         #region Legacy Scrolling Layout
