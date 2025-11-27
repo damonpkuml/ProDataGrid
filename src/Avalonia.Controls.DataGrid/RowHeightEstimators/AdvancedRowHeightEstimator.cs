@@ -40,10 +40,9 @@ namespace Avalonia.Controls
         private readonly Dictionary<int, RegionStatistics> _regionStats = new();
 
         // Fenwick tree for O(log n) prefix sum queries
-        private double[] _fenwickTree = Array.Empty<double>();
-        private bool[] _fenwickInitialized = Array.Empty<bool>();
+        private double[] _fenwickSumTree = Array.Empty<double>();
+        private int[] _fenwickCountTree = Array.Empty<int>();
         private int _fenwickSize;
-        private int _fenwickInitializedCount;
 
         // Smooth scroll correction state
         private double _pendingCorrection;
@@ -154,7 +153,7 @@ namespace Avalonia.Controls
             }
 
             UpdateRegionStatistics(slot, measuredHeight, oldHeight, isNew);
-            UpdateFenwickTree(slot, measuredHeight, oldHeight);
+            UpdateFenwickTree(slot, measuredHeight, oldHeight, isNew);
 
             // Track error for smooth correction
             if (!isNew)
@@ -269,7 +268,7 @@ namespace Avalonia.Controls
                 return 0;
 
             // Use Fenwick tree if we have enough measured data
-            if (_fenwickSize > 0 && _measuredCount > totalSlotCount / 4)
+            if (_fenwickSize > 0 && _measuredCount > 0)
             {
                 // We have enough measured data to use the Fenwick tree
                 return FindSlotByOffsetFenwick(verticalOffset, totalSlotCount);
@@ -288,7 +287,9 @@ namespace Avalonia.Controls
             // Use Fenwick tree for efficient prefix sum query
             if (_fenwickSize >= slot && _measuredCount > 0)
             {
-                return QueryFenwickTree(slot);
+                var (measuredSum, measuredCount) = QueryFenwickPrefix(slot);
+                int estimatedUnmeasured = Math.Max(0, slot - measuredCount);
+                return measuredSum + estimatedUnmeasured * _globalRowHeightEstimate;
             }
 
             // Fallback: Use regional estimates
@@ -663,12 +664,11 @@ namespace Avalonia.Controls
         private void InitializeFenwickTree(int size)
         {
             _fenwickSize = size;
-            _fenwickTree = new double[size + 1];
-            _fenwickInitialized = new bool[size + 1];
-            _fenwickInitializedCount = 0;
+            _fenwickSumTree = new double[size + 1];
+            _fenwickCountTree = new int[size + 1];
         }
 
-        private void UpdateFenwickTree(int slot, double newHeight, double oldHeight)
+        private void UpdateFenwickTree(int slot, double newHeight, double oldHeight, bool isNew)
         {
             if (slot >= _fenwickSize)
             {
@@ -677,74 +677,48 @@ namespace Avalonia.Controls
                 ResizeFenwickTree(newSize);
             }
 
-            // The Fenwick tree stores actual measured heights for initialized slots only.
-            // Uninitialized slots contribute nothing to the tree; we add global estimate at query time.
-            double delta;
-            if (!_fenwickInitialized[slot])
-            {
-                // First time measuring this slot - store actual height
-                delta = newHeight;
-                _fenwickInitialized[slot] = true;
-                _fenwickInitializedCount++;
-            }
-            else
-            {
-                // Updating existing measurement
-                delta = newHeight - oldHeight;
-            }
+            double deltaSum = isNew ? newHeight : newHeight - oldHeight;
+            int deltaCount = isNew ? 1 : 0;
 
-            // Update Fenwick tree
             int i = slot + 1;
             while (i <= _fenwickSize)
             {
-                _fenwickTree[i] += delta;
+                _fenwickSumTree[i] += deltaSum;
+                if (deltaCount != 0)
+                {
+                    _fenwickCountTree[i] += deltaCount;
+                }
                 i += i & (-i);
             }
         }
 
-        private double QueryFenwickTree(int slot)
+        private (double Sum, int Count) QueryFenwickPrefix(int count)
         {
-            // The tree stores actual heights for measured slots only.
-            // For uninitialized slots, we use the global estimate.
-            // Total = fenwickSum + (slot - initializedSlotsUpToSlot) * globalEstimate
-            
-            // Query Fenwick tree for sum of actual heights
             double measuredSum = 0;
-            int i = slot;
+            int measuredCount = 0;
+
+            int i = Math.Min(count, _fenwickSize);
             while (i > 0)
             {
-                measuredSum += _fenwickTree[i];
+                measuredSum += _fenwickSumTree[i];
+                measuredCount += _fenwickCountTree[i];
                 i -= i & (-i);
             }
 
-            // Approximate: use ratio of initialized to total to estimate uninitialized count
-            // This avoids O(n) counting while being reasonably accurate
-            if (_fenwickInitializedCount > 0 && _measuredCount > 0)
-            {
-                // Estimate how many of the first 'slot' slots are uninitialized
-                double initRatio = (double)_fenwickInitializedCount / Math.Max(_fenwickSize, _measuredCount);
-                int estimatedInitialized = (int)(slot * initRatio);
-                int estimatedUninitialized = slot - estimatedInitialized;
-                return measuredSum + estimatedUninitialized * _globalRowHeightEstimate;
-            }
-
-            // Fallback: assume all are estimated
-            return slot * _globalRowHeightEstimate;
+            return (measuredSum, measuredCount);
         }
 
         private int FindSlotByOffsetFenwick(double targetOffset, int totalSlotCount)
         {
-            // Binary search using cumulative heights
-            // Since the Fenwick tree only contains measured heights, we use QueryFenwickTree
-            // which handles the estimation of uninitialized slots
-            
+            // Binary search using cumulative heights with measured data + estimates
             int low = 0;
             int high = Math.Min(_fenwickSize, totalSlotCount);
             
             while (low < high)
             {
                 int mid = (low + high + 1) / 2;
-                double midOffset = QueryFenwickTree(mid);
+                var (sum, measuredCount) = QueryFenwickPrefix(mid);
+                double midOffset = sum + Math.Max(0, mid - measuredCount) * _globalRowHeightEstimate;
                 
                 if (midOffset <= targetOffset)
                 {
@@ -761,31 +735,30 @@ namespace Avalonia.Controls
 
         private void ResizeFenwickTree(int newSize)
         {
-            var oldTree = _fenwickTree;
-            var oldInitialized = _fenwickInitialized;
-            int oldSize = _fenwickSize;
+            var oldSumTree = _fenwickSumTree;
+            var oldCountTree = _fenwickCountTree;
 
             _fenwickSize = newSize;
-            _fenwickTree = new double[newSize + 1];
-            _fenwickInitialized = new bool[newSize + 1];
+            _fenwickSumTree = new double[newSize + 1];
+            _fenwickCountTree = new int[newSize + 1];
 
             // Copy old data
-            Array.Copy(oldTree, _fenwickTree, Math.Min(oldTree.Length, _fenwickTree.Length));
-            Array.Copy(oldInitialized, _fenwickInitialized, Math.Min(oldInitialized.Length, _fenwickInitialized.Length));
+            Array.Copy(oldSumTree, _fenwickSumTree, Math.Min(oldSumTree.Length, _fenwickSumTree.Length));
+            Array.Copy(oldCountTree, _fenwickCountTree, Math.Min(oldCountTree.Length, _fenwickCountTree.Length));
         }
 
         private void RebuildFenwickTree()
         {
             // Reset tree
-            Array.Clear(_fenwickTree, 0, _fenwickTree.Length);
-            Array.Clear(_fenwickInitialized, 0, _fenwickInitialized.Length);
+            Array.Clear(_fenwickSumTree, 0, _fenwickSumTree.Length);
+            Array.Clear(_fenwickCountTree, 0, _fenwickCountTree.Length);
 
             // Rebuild from cached heights
             foreach (var kvp in _measuredHeights)
             {
                 if (kvp.Key < _fenwickSize)
                 {
-                    UpdateFenwickTree(kvp.Key, kvp.Value, _globalRowHeightEstimate);
+                    UpdateFenwickTree(kvp.Key, kvp.Value, 0, isNew: true);
                 }
             }
         }
@@ -827,6 +800,7 @@ namespace Avalonia.Controls
             }
 
             RecalculateStatistics();
+            RebuildFenwickTree();
         }
 
         private void ShiftCachedHeights(int startIndex, int count, bool isInsert)
@@ -926,6 +900,10 @@ namespace Avalonia.Controls
                 _sumMeasuredHeights = _measuredHeights.Values.Sum();
                 _measuredCount = _measuredHeights.Count;
             }
+
+            _globalRowHeightEstimate = _measuredCount > 0
+                ? _sumMeasuredHeights / _measuredCount
+                : _defaultRowHeight;
         }
 
         private double CalculateDetailsHeight(int detailsVisibleCount)
