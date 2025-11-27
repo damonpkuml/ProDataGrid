@@ -75,7 +75,9 @@ Widths accept pixel values (`"80"`), `Auto` (content-based), `*` or weighted sta
 
 This package has been renamed from `Avalonia.Controls.DataGrid` to `ProDataGrid`.
 
-The new hard fork lives at: https://github.com/wieslawsoltes/ProDataGrid
+The new name gives the fork its own NuGet identity (so it can ship independently of Avalonia), avoids collisions with the built-in control, and signals the performance/features added in this branch.
+
+The fork is maintained at https://github.com/wieslawsoltes/ProDataGrid.
 
 ### Migration
 
