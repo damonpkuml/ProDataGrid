@@ -198,6 +198,7 @@ namespace Avalonia.Controls
                 }
 
                 double firstRowHeight = GetExactSlotElementHeight(newFirstScrollingSlot);
+
                 if (MathUtilities.LessThan(firstRowHeight, NegVerticalOffset))
                 {
                     // We've scrolled off more of the first row than what's possible.  This can happen
@@ -214,6 +215,21 @@ namespace Avalonia.Controls
                 UpdateDisplayedRows(newFirstScrollingSlot, CellsEstimatedHeight);
 
                 double firstElementHeight = GetExactSlotElementHeight(DisplayData.FirstScrollingSlot);
+                var firstRowEstimator = RowHeightEstimator;
+                if (firstRowEstimator != null)
+                {
+                    double baseOffset = firstRowEstimator.EstimateOffsetToSlot(DisplayData.FirstScrollingSlot);
+                    if (!double.IsNaN(baseOffset) && !double.IsInfinity(baseOffset))
+                    {
+                        double desiredNeg = Math.Max(0, newVerticalOffset - baseOffset);
+                        if (MathUtilities.GreaterThanOrClose(desiredNeg, firstElementHeight))
+                        {
+                            desiredNeg = Math.Max(0, firstElementHeight - MathUtilities.DoubleEpsilon);
+                        }
+                        NegVerticalOffset = desiredNeg;
+                    }
+                }
+
                 if (MathUtilities.GreaterThan(NegVerticalOffset, firstElementHeight))
                 {
                     int firstElementSlot = DisplayData.FirstScrollingSlot;
@@ -242,7 +258,25 @@ namespace Avalonia.Controls
                 }
 
                 Debug.Assert(DisplayData.FirstScrollingSlot >= 0);
-                Debug.Assert(GetExactSlotElementHeight(DisplayData.FirstScrollingSlot) > NegVerticalOffset);
+                double safetyFirstHeight = GetExactSlotElementHeight(DisplayData.FirstScrollingSlot);
+                if (double.IsNaN(safetyFirstHeight) || MathUtilities.LessThanOrClose(safetyFirstHeight, 0))
+                {
+                    safetyFirstHeight = Math.Max(1, RowHeightEstimate);
+                }
+                if (MathUtilities.GreaterThanOrClose(NegVerticalOffset, safetyFirstHeight))
+                {
+                    NegVerticalOffset = Math.Max(0, safetyFirstHeight - 0.001);
+                }
+                else if (MathUtilities.LessThan(NegVerticalOffset, 0))
+                {
+                    NegVerticalOffset = 0;
+                }
+                safetyFirstHeight = GetExactSlotElementHeight(DisplayData.FirstScrollingSlot);
+                if (double.IsNaN(safetyFirstHeight) || MathUtilities.LessThanOrClose(safetyFirstHeight, 0))
+                {
+                    safetyFirstHeight = Math.Max(1, RowHeightEstimate);
+                }
+                Debug.Assert(safetyFirstHeight > NegVerticalOffset);
 
                 if (DisplayData.FirstScrollingSlot == 0)
                 {
@@ -258,6 +292,47 @@ namespace Avalonia.Controls
                 else
                 {
                     _verticalOffset = newVerticalOffset;
+                }
+
+                var offsetEstimator = RowHeightEstimator;
+                if (offsetEstimator != null && DisplayData.FirstScrollingSlot >= 0)
+                {
+                    double baseOffset = offsetEstimator.EstimateOffsetToSlot(DisplayData.FirstScrollingSlot);
+                    double alignedVerticalOffset = baseOffset + NegVerticalOffset;
+                    if (!double.IsNaN(alignedVerticalOffset) && !double.IsInfinity(alignedVerticalOffset))
+                    {
+                        _verticalOffset = Math.Max(0, alignedVerticalOffset);
+
+                        // Adjust NegVerticalOffset to keep it consistent with estimator-aligned base offset
+                        double correctedNegOffset = Math.Max(0, _verticalOffset - baseOffset);
+                        if (!MathUtilities.AreClose(correctedNegOffset, NegVerticalOffset))
+                        {
+                            NegVerticalOffset = correctedNegOffset;
+                        }
+                    }
+                }
+
+                if (DisplayData.FirstScrollingSlot < 0)
+                {
+                    DisplayData.FirstScrollingSlot = 0;
+                    NegVerticalOffset = 0;
+                }
+
+                double displayedFirstHeight = GetExactSlotElementHeight(DisplayData.FirstScrollingSlot);
+                if (double.IsNaN(displayedFirstHeight) || MathUtilities.LessThanOrClose(displayedFirstHeight, 0))
+                {
+                    displayedFirstHeight = Math.Max(1, RowHeightEstimate);
+                    NegVerticalOffset = 0;
+                }
+
+                if (MathUtilities.GreaterThanOrClose(NegVerticalOffset, displayedFirstHeight))
+                {
+                    // Ensure the negative offset stays strictly below the realized height to avoid assertion hits
+                    NegVerticalOffset = Math.Max(0, displayedFirstHeight - 0.5);
+                }
+                else if (MathUtilities.LessThan(NegVerticalOffset, 0))
+                {
+                    NegVerticalOffset = 0;
                 }
 
                 Debug.Assert(!(_verticalOffset == 0 && NegVerticalOffset == 0 && DisplayData.FirstScrollingSlot > 0));
