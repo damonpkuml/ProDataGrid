@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
+             x:Class="DataGridSample.DataTablePage"
+             x:DataType="viewModels:DataTableViewModel">
+  <UserControl.DataContext>
+    <viewModels:DataTableViewModel/>
+  </UserControl.DataContext>
+
+  <Grid RowDefinitions="Auto,Auto,*" Margin="0,0,0,4">
+    <StackPanel Grid.Row="0" Orientation="Vertical" Spacing="4" Margin="0,0,0,8">
+      <TextBlock Classes="h2" Text="DataTable DefaultView" />
+      <TextBlock TextWrapping="Wrap"
+                 Text="Demonstrates binding a DataGrid directly to a DataTable.DefaultView with auto-generated columns, sorting, and editing."/>
+    </StackPanel>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+      <Button Content="Add Row" Command="{Binding AddRowCommand}" />
+      <Button Content="Remove Selected" Command="{Binding RemoveSelectedCommand}" />
+      <Button Content="Reset" Command="{Binding ResetCommand}" />
+      <TextBlock VerticalAlignment="Center"
+                 Text="{Binding Items.Count, StringFormat='Rows: {0}'}" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="2"
+              ItemsSource="{Binding Items}"
+              SelectedItem="{Binding SelectedRow, Mode=TwoWay}"
+              AutoGenerateColumns="True"
+              CanUserSortColumns="True"
+              HeadersVisibility="All"
+              GridLinesVisibility="All"
+              RowBackground="#05000000" />
+  </Grid>
+</UserControl>
