@@ -168,6 +168,8 @@ namespace Avalonia.Controls
             RowHeightEstimatorProperty.Changed.AddClassHandler<DataGrid>((x, e) => x.OnRowHeightEstimatorChanged(e));
 
             FocusableProperty.OverrideDefaultValue<DataGrid>(true);
+
+            DataGridTypeDescriptorPlugin.EnsureRegistered();
         }
 
         /// <summary>

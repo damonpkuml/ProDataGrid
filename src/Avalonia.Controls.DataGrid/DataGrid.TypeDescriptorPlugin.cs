@@ -5,7 +5,6 @@
 using System;
 using System.ComponentModel;
 using System.Data;
-using System.Runtime.CompilerServices;
 using Avalonia.Data;
 using Avalonia.Data.Core.Plugins;
 
@@ -19,7 +18,6 @@ namespace Avalonia.Controls
     {
         private static bool _registered;
 
-        [ModuleInitializer]
         internal static void EnsureRegistered()
         {
             if (_registered)
