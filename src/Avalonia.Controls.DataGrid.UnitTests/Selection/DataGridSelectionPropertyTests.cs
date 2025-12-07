@@ -2,8 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using Avalonia.Controls;
+using Avalonia.Collections;
 using Avalonia.Controls.Selection;
 using Avalonia.Data;
 using Avalonia.Headless.XUnit;
@@ -115,6 +119,34 @@ public class DataGridSelectionPropertyTests
         Assert.Equal(0, grid.SelectedIndex);
     }
 
+    [AvaloniaFact]
+    public void Sorting_Does_Not_Clear_Selection_Model_Selection()
+    {
+        var items = new ObservableCollection<Item>
+        {
+            new() { Name = "Beta" },
+            new() { Name = "Alpha" },
+            new() { Name = "Gamma" },
+        };
+
+        var view = new DataGridCollectionView(items);
+        var selectionModel = new SelectionModel<Item> { SingleSelect = false };
+
+        var grid = CreateGrid(view, selectionModel);
+        grid.UpdateLayout();
+
+        selectionModel.Select(1); // select "Alpha" after binding
+        grid.UpdateLayout();
+
+        ApplySort(view, nameof(Item.Name), ListSortDirection.Ascending);
+        grid.UpdateLayout();
+
+        Assert.Contains(items[1], selectionModel.SelectedItems);
+        Assert.Contains(items[1], grid.SelectedItems.Cast<object>());
+        Assert.Equal(items[1], grid.SelectedItem);
+        Assert.Equal(0, selectionModel.SelectedIndex); // moved to first after sort
+    }
+
     private static DataGrid CreateGrid(IEnumerable items)
     {
         var root = new Window
@@ -145,6 +177,62 @@ public class DataGridSelectionPropertyTests
         root.Content = grid;
         root.Show();
         return grid;
+    }
+
+    private static DataGrid CreateGrid(IEnumerable items, SelectionModel<Item> selection)
+    {
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            ItemsSource = items,
+            Selection = selection,
+            SelectionMode = DataGridSelectionMode.Extended,
+            AutoGenerateColumns = true,
+        };
+
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding(nameof(Item.Name))
+        });
+
+        root.Content = grid;
+        root.Show();
+        return grid;
+    }
+
+    private static void ApplySort(DataGridCollectionView view, string propertyPath, ListSortDirection direction)
+    {
+        var assembly = typeof(DataGrid).Assembly;
+        var sortType = assembly.GetType("Avalonia.Collections.DataGridSortDescription+DataGridPathSortDescription")
+                       ?? throw new InvalidOperationException("Could not locate DataGridPathSortDescription type.");
+
+        var sortDescription = Activator.CreateInstance(
+            sortType,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            args: new object[] { propertyPath, direction, null, CultureInfo.InvariantCulture },
+            culture: null) as DataGridSortDescription;
+
+        view.SortDescriptions.Clear();
+        view.SortDescriptions.Add(sortDescription!);
+    }
+
+    private class Item
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     private static IReadOnlyList<DataGridRow> GetRows(DataGrid grid)

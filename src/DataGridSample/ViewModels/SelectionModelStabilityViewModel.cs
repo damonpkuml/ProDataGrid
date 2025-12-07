@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
+using Avalonia.Collections;
+using Avalonia.Controls.Selection;
 using DataGridSample.Models;
 using DataGridSample.Mvvm;
 
@@ -16,19 +18,29 @@ public class SelectionModelStabilityViewModel : ObservableObject
     public SelectionModelStabilityViewModel()
     {
         Items = new ObservableCollection<Country>(Countries.All.Take(20).ToList());
+        ItemsView = new DataGridCollectionView(Items);
+        SelectionModel = new SelectionModel<Country>
+        {
+            SingleSelect = false,
+            Source = ItemsView
+        };
         SelectedItems = new ObservableCollection<object>();
         SelectionLog = new ObservableCollection<string>();
 
-        SelectedItems.CollectionChanged += OnSelectedItemsChanged;
+        SelectionModel.SelectionChanged += OnSelectionChanged;
 
         ShuffleCommand = new RelayCommand(_ => ShuffleItems());
         SortByNameCommand = new RelayCommand(_ => SortByName());
         AddAtTopCommand = new RelayCommand(_ => AddAtTop());
         RemoveFirstCommand = new RelayCommand(_ => RemoveFirst());
-        ClearSelectionCommand = new RelayCommand(_ => SelectedItems.Clear());
+        ClearSelectionCommand = new RelayCommand(_ => SelectionModel.Clear());
     }
 
     public ObservableCollection<Country> Items { get; }
+
+    public DataGridCollectionView ItemsView { get; }
+
+    public SelectionModel<Country> SelectionModel { get; }
 
     public ObservableCollection<object> SelectedItems { get; }
 
@@ -44,15 +56,30 @@ public class SelectionModelStabilityViewModel : ObservableObject
 
     public RelayCommand ClearSelectionCommand { get; }
 
-    private void OnSelectedItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnSelectionChanged(object? sender, SelectionModelSelectionChangedEventArgs e)
     {
-        var added = e.NewItems?.Count ?? 0;
-        var removed = e.OldItems?.Count ?? 0;
+        var added = e.SelectedItems?.Count ?? 0;
+        var removed = e.DeselectedItems?.Count ?? 0;
         if (_syncingSelection)
         {
             return;
         }
-        SelectionLog.Insert(0, $"Add: {added}, Remove: {removed}, Total: {SelectedItems.Count}");
+
+        _syncingSelection = true;
+        try
+        {
+            SelectedItems.Clear();
+            foreach (var item in SelectionModel.SelectedItems)
+            {
+                SelectedItems.Add(item!);
+            }
+        }
+        finally
+        {
+            _syncingSelection = false;
+        }
+
+        SelectionLog.Insert(0, $"Add: {added}, Remove: {removed}, Total: {SelectionModel.SelectedItems.Count}");
 
         if (SelectionLog.Count > 40)
         {
@@ -62,20 +89,14 @@ public class SelectionModelStabilityViewModel : ObservableObject
 
     private void ShuffleItems()
     {
-        WithSelectionPreserved(() =>
-        {
-            var shuffled = Items.OrderBy(_ => _random.Next()).ToList();
-            Reorder(shuffled);
-        });
+        var shuffled = Items.OrderBy(_ => _random.Next()).ToList();
+        Reorder(shuffled);
     }
 
     private void SortByName()
     {
-        WithSelectionPreserved(() =>
-        {
-            var sorted = Items.OrderBy(x => x.Name).ToList();
-            Reorder(sorted);
-        });
+        var sorted = Items.OrderBy(x => x.Name).ToList();
+        Reorder(sorted);
     }
 
     private void AddAtTop()
@@ -123,29 +144,6 @@ public class SelectionModelStabilityViewModel : ObservableObject
             {
                 Items.Move(currentIndex, targetIndex);
             }
-        }
-    }
-
-    private void WithSelectionPreserved(Action mutate)
-    {
-        var snapshot = SelectedItems.OfType<Country>().ToList();
-        mutate();
-
-        _syncingSelection = true;
-        try
-        {
-            SelectedItems.Clear();
-            foreach (var item in snapshot)
-            {
-                if (Items.Contains(item))
-                {
-                    SelectedItems.Add(item);
-                }
-            }
-        }
-        finally
-        {
-            _syncingSelection = false;
         }
     }
 }

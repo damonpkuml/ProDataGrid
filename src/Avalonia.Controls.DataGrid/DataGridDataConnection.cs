@@ -877,12 +877,15 @@ namespace Avalonia.Controls
                     break;
             }
 
-            if (selectionSnapshot != null && e.Action != NotifyCollectionChangedAction.Reset)
+            if (selectionSnapshot != null)
             {
                 _owner.RestoreSelectionFromSnapshot(selectionSnapshot);
             }
 
             _owner.UpdatePseudoClasses();
+
+            // Ensure the visual selection state matches the restored selection after mutations
+            _owner.RefreshVisibleSelection();
         }
 
         private void AddNewItemRow()

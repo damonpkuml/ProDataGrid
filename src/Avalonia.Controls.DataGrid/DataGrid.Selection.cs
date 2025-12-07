@@ -266,6 +266,31 @@ namespace Avalonia.Controls
             }
 
             _preferredSelectionIndex = -1;
+
+            RefreshVisibleSelection();
+        }
+
+        internal void RefreshVisibleSelection()
+        {
+            if (DisplayData == null)
+            {
+                return;
+            }
+
+            for (int slot = DisplayData.FirstScrollingSlot;
+                slot > -1 && slot <= DisplayData.LastScrollingSlot;
+                slot++)
+            {
+                var element = DisplayData.GetDisplayedElement(slot);
+                if (element is DataGridRow row)
+                {
+                    row.ApplyState();
+                }
+                else if (element is DataGridRowGroupHeader groupHeader)
+                {
+                    groupHeader.UpdatePseudoClasses();
+                }
+            }
         }
 
         private void SelectionModel_IndexesChanged(object sender, SelectionModelIndexesChangedEventArgs e)
