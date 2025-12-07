@@ -204,8 +204,10 @@ namespace Avalonia.Controls
                 // or we failed opening the row for edit, then we can no longer continue BeginCellEdit
                 return false;
             }
-            Debug.Assert(EditingRow != null);
-            Debug.Assert(EditingRow.Slot == CurrentSlot);
+            if (EditingRow == null || EditingRow.Slot != CurrentSlot)
+            {
+                return false;
+            }
 
             // Finally, we can prepare the cell for editing
             _editingColumnIndex = CurrentColumnIndex;
