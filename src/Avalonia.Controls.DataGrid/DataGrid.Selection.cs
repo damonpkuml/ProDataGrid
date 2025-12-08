@@ -7,11 +7,14 @@
 using Avalonia.Collections;
 using Avalonia.Controls.Utils;
 using Avalonia.Interactivity;
+using Avalonia.Controls.Selection;
 using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Avalonia.Controls
 {
@@ -65,6 +68,8 @@ namespace Avalonia.Controls
                 {
                     return;
                 }
+
+                ApplySelectionActionToSelectionModel(slot, action);
 
                 switch (action)
                 {
@@ -138,6 +143,312 @@ namespace Avalonia.Controls
             {
                 NoCurrentCellChangeCount--;
                 NoSelectionChangeCount--;
+            }
+        }
+
+        private void ApplySelectionActionToSelectionModel(int slot, DataGridSelectionAction action)
+        {
+            if (_syncingSelectionModel)
+            {
+                return;
+            }
+
+            if (_selectionModelAdapter == null || DataConnection?.CollectionView == null)
+            {
+                return;
+            }
+
+            int rowIndex = SelectionIndexFromSlot(slot);
+            if (rowIndex < 0)
+            {
+                return;
+            }
+
+            using (_selectionModelAdapter.Model.BatchUpdate())
+            {
+                _syncingSelectionModel = true;
+                try
+                {
+                    switch (action)
+                    {
+                        case DataGridSelectionAction.AddCurrentToSelection:
+                            _selectionModelAdapter.Select(rowIndex);
+                            break;
+                        case DataGridSelectionAction.RemoveCurrentFromSelection:
+                            _selectionModelAdapter.Deselect(rowIndex);
+                            break;
+                        case DataGridSelectionAction.SelectFromAnchorToCurrent:
+                            if (AnchorSlot != -1)
+                            {
+                                int anchorIndex = SelectionIndexFromSlot(AnchorSlot);
+                                if (anchorIndex >= 0)
+                                {
+                                    int start = Math.Min(anchorIndex, rowIndex);
+                                    int end = Math.Max(anchorIndex, rowIndex);
+                                    _selectionModelAdapter.SelectRange(start, end);
+                                }
+                            }
+                            else
+                            {
+                                _selectionModelAdapter.Clear();
+                                _selectionModelAdapter.Select(rowIndex);
+                            }
+                            break;
+                        case DataGridSelectionAction.SelectCurrent:
+                            _selectionModelAdapter.Clear();
+                            _selectionModelAdapter.Select(rowIndex);
+                            break;
+                        case DataGridSelectionAction.None:
+                            break;
+                    }
+                }
+                finally
+                {
+                    _syncingSelectionModel = false;
+                }
+            }
+        }
+
+        private void SelectionModel_SelectionChanged(object sender, SelectionModelSelectionChangedEventArgs e)
+        {
+            if (_syncingSelectionModel)
+            {
+                return;
+            }
+
+            try
+            {
+                _syncingSelectionModel = true;
+
+                ApplySelectionFromSelectionModel();
+                UpdateSelectionSnapshot();
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
+            }
+        }
+
+        private void ApplySelectionFromSelectionModel()
+        {
+            var previousSync = _syncingSelectionModel;
+            _syncingSelectionModel = true;
+            try
+            {
+                var indexes = _selectionModelAdapter?.Model.SelectedIndexes;
+                if (_selectionModelAdapter?.Model.Source == null || indexes == null || indexes.Count == 0)
+                {
+                    ClearRowSelection(resetAnchorSlot: true);
+                    SetCurrentCellCore(-1, -1);
+                    return;
+                }
+
+                int preferredIndex = _preferredSelectionIndex >= 0
+                    ? _preferredSelectionIndex
+                    : _selectionModelAdapter.Model.SelectedIndex;
+
+                var mapped = new List<(int RowIndex, int Slot)>();
+                foreach (int rowIndex in indexes)
+                {
+                    int slot = SlotFromSelectionIndex(rowIndex);
+                    if (slot >= 0 && slot < SlotCount)
+                    {
+                        mapped.Add((rowIndex, slot));
+                    }
+                }
+
+                if (mapped.Count == 0)
+                {
+                    _preferredSelectionIndex = preferredIndex;
+                    ClearRowSelection(resetAnchorSlot: true);
+                    SetCurrentCellCore(-1, -1);
+                    return;
+                }
+
+                ClearRowSelection(resetAnchorSlot: true);
+
+                int? firstSlot = null;
+                foreach (var entry in mapped)
+                {
+                    int slot = entry.Slot;
+                    int rowIndex = entry.RowIndex;
+                    if (firstSlot == null || (preferredIndex >= 0 && rowIndex == preferredIndex))
+                    {
+                        firstSlot = slot;
+                    }
+                    SetRowSelection(slot, isSelected: true, setAnchorSlot: firstSlot == slot);
+                }
+
+                if (firstSlot.HasValue)
+                {
+                    int columnIndex = CurrentColumnIndex != -1 ? CurrentColumnIndex : FirstDisplayedNonFillerColumnIndex;
+                    UpdateSelectionAndCurrency(columnIndex, firstSlot.Value, DataGridSelectionAction.None, scrollIntoView: false);
+                }
+                else
+                {
+                    SetCurrentCellCore(-1, -1);
+                }
+
+                _preferredSelectionIndex = -1;
+
+                RefreshVisibleSelection();
+            }
+            finally
+            {
+                _syncingSelectionModel = previousSync;
+            }
+        }
+
+        internal void RefreshVisibleSelection()
+        {
+            if (DisplayData == null)
+            {
+                return;
+            }
+
+            for (int slot = DisplayData.FirstScrollingSlot;
+                slot > -1 && slot <= DisplayData.LastScrollingSlot;
+                slot++)
+            {
+                var element = DisplayData.GetDisplayedElement(slot);
+                if (element is DataGridRow row)
+                {
+                    row.ApplyState();
+                }
+                else if (element is DataGridRowGroupHeader groupHeader)
+                {
+                    groupHeader.UpdatePseudoClasses();
+                }
+            }
+        }
+
+        private void SelectionModel_IndexesChanged(object sender, SelectionModelIndexesChangedEventArgs e)
+        {
+            if (_syncingSelectionModel)
+            {
+                return;
+            }
+
+            try
+            {
+                _syncingSelectionModel = true;
+                ApplySelectionFromSelectionModel();
+                UpdateSelectionSnapshot();
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
+            }
+        }
+
+        private void SelectionModel_LostSelection(object sender, EventArgs e)
+        {
+            if (_syncingSelectionModel)
+            {
+                return;
+            }
+
+            try
+            {
+                _syncingSelectionModel = true;
+                ClearRowSelection(resetAnchorSlot: true);
+                SetCurrentCellCore(-1, -1);
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
+            }
+        }
+
+        private void SelectionModel_SourceReset(object sender, EventArgs e)
+        {
+            if (_syncingSelectionModel || _selectionModelAdapter == null)
+            {
+                return;
+            }
+
+            var snapshot = _selectionModelSnapshot;
+            if (snapshot == null || snapshot.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                _syncingSelectionModel = true;
+                using (_selectionModelAdapter.Model.BatchUpdate())
+                {
+                    _selectionModelAdapter.Model.Clear();
+                    foreach (var item in snapshot)
+                    {
+                        int index = GetSelectionModelIndexOfItem(item);
+                        if (index >= 0)
+                        {
+                            _selectionModelAdapter.Select(index);
+                        }
+                    }
+                }
+
+                _preferredSelectionIndex = _selectionModelAdapter.Model.SelectedIndex;
+                ApplySelectionFromSelectionModel();
+                UpdateSelectionSnapshot();
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
+            }
+        }
+
+        private void UpdateSelectionSnapshot()
+        {
+            if (_selectionModelAdapter != null)
+            {
+                _selectionModelSnapshot = _selectionModelAdapter.SelectedItemsView.Cast<object>().ToList();
+            }
+            else
+            {
+                _selectionModelSnapshot = null;
+            }
+        }
+
+        private void SelectionModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (_syncingSelectionModel)
+            {
+                return;
+            }
+
+            if (e.PropertyName == nameof(ISelectionModel.SingleSelect))
+            {
+                try
+                {
+                    _syncingSelectionModel = true;
+                    SelectionMode = _selectionModelAdapter.Model.SingleSelect
+                        ? DataGridSelectionMode.Single
+                        : DataGridSelectionMode.Extended;
+                }
+                finally
+                {
+                    _syncingSelectionModel = false;
+                }
+            }
+        }
+
+        internal void RefreshSelectionFromModel()
+        {
+            if (_selectionModelAdapter == null)
+            {
+                return;
+            }
+
+            _syncingSelectionModel = true;
+            try
+            {
+                ApplySelectionFromSelectionModel();
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
             }
         }
 
@@ -219,6 +530,8 @@ namespace Avalonia.Controls
                 {
                     OnSelectionChanged(e);
                 }
+
+                SyncSelectionModelFromGridSelection();
             }
         }
 
@@ -304,6 +617,33 @@ namespace Avalonia.Controls
             _syncingSelectedItems = true;
             try
             {
+                if (_selectionModelAdapter != null && DataConnection?.CollectionView != null)
+                {
+                    _syncingSelectionModel = true;
+                    try
+                    {
+                        using (_selectionModelAdapter.Model.BatchUpdate())
+                        {
+                            _selectionModelAdapter.Model.Clear();
+                            foreach (object item in boundItems)
+                            {
+                                int index = GetSelectionModelIndexOfItem(item);
+                                if (index >= 0)
+                                {
+                                    _selectionModelAdapter.Select(index);
+                                }
+                            }
+                        }
+
+                        ApplySelectionFromSelectionModel();
+                    }
+                    finally
+                    {
+                        _syncingSelectionModel = false;
+                    }
+                    return;
+                }
+
                 if (SelectionMode == DataGridSelectionMode.Single)
                 {
                     SelectedItem = boundItems.Count > 0 ? boundItems[boundItems.Count - 1] : null;
@@ -331,6 +671,11 @@ namespace Avalonia.Controls
                 return;
             }
 
+            if (_selectionModelAdapter != null && DataConnection?.CollectionView == null)
+            {
+                return;
+            }
+
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Reset:
@@ -349,18 +694,72 @@ namespace Avalonia.Controls
 
                     if (e.NewItems != null)
                     {
-                        foreach (object item in e.NewItems)
+                        if (_selectionModelAdapter != null && DataConnection?.CollectionView != null)
                         {
-                            _selectedItems.Add(item);
+                            _syncingSelectionModel = true;
+                            try
+                            {
+                                using (_selectionModelAdapter.Model.BatchUpdate())
+                                {
+                                    foreach (object item in e.NewItems)
+                                    {
+                                        int index = GetSelectionModelIndexOfItem(item);
+                                        if (index >= 0)
+                                        {
+                                            _selectionModelAdapter.Select(index);
+                                        }
+                                    }
+                                }
+
+                                ApplySelectionFromSelectionModel();
+                            }
+                            finally
+                            {
+                                _syncingSelectionModel = false;
+                            }
+                        }
+                        else
+                        {
+                            foreach (object item in e.NewItems)
+                            {
+                                _selectedItems.Add(item);
+                            }
                         }
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:
                     if (e.OldItems != null)
                     {
-                        foreach (object item in e.OldItems)
+                        if (_selectionModelAdapter != null && DataConnection?.CollectionView != null)
                         {
-                            _selectedItems.Remove(item);
+                            _syncingSelectionModel = true;
+                            try
+                            {
+                                using (_selectionModelAdapter.Model.BatchUpdate())
+                                {
+                                    foreach (object item in e.OldItems)
+                                    {
+                                        int index = GetSelectionModelIndexOfItem(item);
+                                        if (index >= 0)
+                                        {
+                                            _selectionModelAdapter.Deselect(index);
+                                        }
+                                    }
+                                }
+
+                                ApplySelectionFromSelectionModel();
+                            }
+                            finally
+                            {
+                                _syncingSelectionModel = false;
+                            }
+                        }
+                        else
+                        {
+                            foreach (object item in e.OldItems)
+                            {
+                                _selectedItems.Remove(item);
+                            }
                         }
                     }
 
@@ -374,24 +773,66 @@ namespace Avalonia.Controls
                     }
                     break;
                 case NotifyCollectionChangedAction.Replace:
-                    if (e.OldItems != null)
-                    {
-                        foreach (object item in e.OldItems)
-                        {
-                            _selectedItems.Remove(item);
-                        }
-                    }
-
                     if (SelectionMode == DataGridSelectionMode.Single)
                     {
                         SelectedItem = e.NewItems != null && e.NewItems.Count > 0 ? e.NewItems[0] : null;
                         NormalizeBoundSelectionForSingleMode();
                     }
-                    else if (e.NewItems != null)
+                    else if (_selectionModelAdapter != null && DataConnection?.CollectionView != null)
                     {
-                        foreach (object item in e.NewItems)
+                        _syncingSelectionModel = true;
+                        try
                         {
-                            _selectedItems.Add(item);
+                            using (_selectionModelAdapter.Model.BatchUpdate())
+                            {
+                                if (e.OldItems != null)
+                                {
+                                    foreach (object item in e.OldItems)
+                                    {
+                                        int index = GetSelectionModelIndexOfItem(item);
+                                        if (index >= 0)
+                                        {
+                                            _selectionModelAdapter.Deselect(index);
+                                        }
+                                    }
+                                }
+
+                                if (e.NewItems != null)
+                                {
+                                    foreach (object item in e.NewItems)
+                                    {
+                                        int index = GetSelectionModelIndexOfItem(item);
+                                        if (index >= 0)
+                                        {
+                                            _selectionModelAdapter.Select(index);
+                                        }
+                                    }
+                                }
+                            }
+
+                            ApplySelectionFromSelectionModel();
+                        }
+                        finally
+                        {
+                            _syncingSelectionModel = false;
+                        }
+                    }
+                    else
+                    {
+                        if (e.OldItems != null)
+                        {
+                            foreach (object item in e.OldItems)
+                            {
+                                _selectedItems.Remove(item);
+                            }
+                        }
+
+                        if (e.NewItems != null)
+                        {
+                            foreach (object item in e.NewItems)
+                            {
+                                _selectedItems.Add(item);
+                            }
                         }
                     }
                     break;
@@ -405,6 +846,16 @@ namespace Avalonia.Controls
         {
             if (ReferenceEquals(_selectedItemsBinding, _selectedItems))
             {
+                return;
+            }
+
+            if (_selectionModelAdapter != null)
+            {
+                _selectedItemsBinding.Clear();
+                foreach (object item in _selectionModelAdapter.SelectedItemsView)
+                {
+                    _selectedItemsBinding.Add(item);
+                }
                 return;
             }
 
@@ -447,6 +898,11 @@ namespace Avalonia.Controls
             int insertIndex = index >= 0 && index <= _selectedItemsBinding.Count ? index : _selectedItemsBinding.Count;
             foreach (object item in items)
             {
+                if (_selectedItemsBinding.Contains(item))
+                {
+                    continue;
+                }
+
                 _selectedItemsBinding.Insert(insertIndex, item);
                 insertIndex++;
             }
@@ -488,13 +944,29 @@ namespace Avalonia.Controls
         /// </summary>
         internal void CoerceSelectedItem()
         {
+            if (_preferredSelectionIndex >= 0)
+            {
+                object preferredItem = DataConnection.GetDataItem(_preferredSelectionIndex);
+                if (preferredItem != null)
+                {
+                    SetValueNoCallback(SelectedItemProperty, preferredItem);
+                    SetValueNoCallback(SelectedIndexProperty, _preferredSelectionIndex);
+                    _preferredSelectionIndex = -1;
+                    return;
+                }
+            }
+
             object selectedItem = null;
 
             if (SelectionMode == DataGridSelectionMode.Extended &&
                 CurrentSlot != -1 &&
-                _selectedItems.ContainsSlot(CurrentSlot))
+                GetRowSelection(CurrentSlot))
             {
                 selectedItem = CurrentItem;
+            }
+            else if (_selectionModelAdapter != null && _selectionModelAdapter.Model.SelectedIndex >= 0)
+            {
+                selectedItem = _selectionModelAdapter.Model.SelectedItem;
             }
             else if (_selectedItems.Count > 0)
             {
@@ -508,7 +980,7 @@ namespace Avalonia.Controls
 
             if (selectedItem != null)
             {
-                newIndex = DataConnection.IndexOf(selectedItem);
+                newIndex = GetSelectionModelIndexOfItem(selectedItem);
             }
 
             SetValueNoCallback(SelectedIndexProperty, newIndex);
@@ -609,8 +1081,8 @@ namespace Avalonia.Controls
         {
             if (!_areHandlersSuspended)
             {
-                int rowIndex = (e.NewValue == null) ? -1 : DataConnection.IndexOf(e.NewValue);
-                if (rowIndex == -1)
+                int selectionIndex = (e.NewValue == null) ? -1 : GetSelectionModelIndexOfItem(e.NewValue);
+                if (selectionIndex == -1)
                 {
                     // If the Item is null or it's not found, clear the Selection
                     if (!CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true))
@@ -630,7 +1102,13 @@ namespace Avalonia.Controls
                 }
                 else
                 {
-                    int slot = SlotFromRowIndex(rowIndex);
+                    int slot = SlotFromSelectionIndex(selectionIndex);
+                    if (slot == -1)
+                    {
+                        SetValueNoCallback(SelectedIndexProperty, selectionIndex);
+                        _preferredSelectionIndex = selectionIndex;
+                        return;
+                    }
                     if (slot != CurrentSlot)
                     {
                         if (!CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true))
@@ -643,13 +1121,14 @@ namespace Avalonia.Controls
                         {
                             if (DataConnection.CollectionView != null)
                             {
-                                DataConnection.CollectionView.MoveCurrentToPosition(rowIndex);
+                                int moveIndex = RowIndexFromSlot(slot);
+                                DataConnection.CollectionView.MoveCurrentToPosition(moveIndex);
                             }
                         }
                     }
 
                     int oldSelectedIndex = SelectedIndex;
-                    SetValueNoCallback(SelectedIndexProperty, rowIndex);
+                    SetValueNoCallback(SelectedIndexProperty, selectionIndex);
                     try
                     {
                         _noSelectionChangeCount++;
@@ -686,6 +1165,11 @@ namespace Avalonia.Controls
             if (!_areHandlersSuspended)
             {
                 ClearRowSelection(resetAnchorSlot: true);
+                if (_selectionModelAdapter != null)
+                {
+                    _selectionModelAdapter.Model.SingleSelect = SelectionMode == DataGridSelectionMode.Single;
+                    SyncSelectionModelFromGridSelection();
+                }
             }
         }
 

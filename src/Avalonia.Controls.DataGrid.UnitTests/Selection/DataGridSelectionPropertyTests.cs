@@ -1,0 +1,432 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using Avalonia.Controls;
+using Avalonia.Collections;
+using Avalonia.Controls.Selection;
+using Avalonia.Data;
+using Avalonia.Headless.XUnit;
+using Avalonia.Markup.Xaml.Styling;
+using Avalonia.VisualTree;
+using Xunit;
+
+namespace Avalonia.Controls.DataGridTests.Selection;
+
+public class DataGridSelectionPropertyTests
+{
+    [AvaloniaFact]
+    public void Custom_SelectionModel_Applies_Selection_To_Grid()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+        var selectionModel = new SelectionModel<string> { SingleSelect = false };
+        selectionModel.Select(1); // preselect before wiring
+
+        var grid = CreateGrid(items);
+        grid.Selection = selectionModel;
+        grid.UpdateLayout();
+
+        Assert.Equal("B", grid.SelectedItem);
+        Assert.Equal(new[] { "B" }, grid.SelectedItems.Cast<string>());
+
+        var rows = GetRows(grid);
+        Assert.True(rows.First(r => Equals(r.DataContext, "B")).IsSelected);
+        Assert.All(rows.Where(r => !Equals(r.DataContext, "B")), r => Assert.False(r.IsSelected));
+
+        Assert.Same(grid.Selection, selectionModel);
+        Assert.Same(grid.Selection.Source, grid.CollectionView);
+    }
+
+    [AvaloniaFact]
+    public void Selection_Model_With_Mismatched_Source_Throws()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+        var grid = CreateGrid(items);
+
+        // Source is the raw collection, not the view wrapped by the grid.
+        var selectionModel = new SelectionModel<object> { Source = items };
+
+        Assert.Throws<InvalidOperationException>(() => grid.Selection = selectionModel);
+    }
+
+    [AvaloniaFact]
+    public void Replacing_Selection_Raises_Removed_SelectionChanged()
+    {
+        var items = new ObservableCollection<string> { "A", "B" };
+        var grid = CreateGrid(items);
+        grid.SelectedItem = items[0];
+        grid.UpdateLayout();
+
+        SelectionChangedEventArgs? args = null;
+        grid.SelectionChanged += (_, e) => args = e;
+
+        grid.Selection = new SelectionModel<object>();
+        grid.UpdateLayout();
+
+        Assert.NotNull(args);
+        var removed = args!.RemovedItems.Cast<object>().ToArray();
+        Assert.Equal(new[] { items[0] }, removed);
+        Assert.Empty(args.AddedItems);
+    }
+
+    [AvaloniaFact]
+    public void SelectionModel_Shifts_On_Insert_Before_Selected_Item()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+        var selectionModel = new SelectionModel<string> { SingleSelect = false };
+        selectionModel.Select(1); // select "B" before source to verify deferred selection
+
+        var grid = CreateGrid(items);
+        grid.Selection = selectionModel;
+        grid.UpdateLayout();
+
+        var selected = items[1];
+        Assert.Equal(selected, grid.SelectedItem);
+        Assert.Equal(1, selectionModel.SelectedIndex);
+
+        items.Insert(0, "Z");
+        grid.UpdateLayout();
+
+        Assert.Equal(selected, grid.SelectedItem);
+        Assert.Contains(selected, grid.SelectedItems.Cast<object>());
+        Assert.Equal(items.IndexOf(selected), selectionModel.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void SelectionModel_Reflects_Grid_Selection_Changes()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+        var selectionModel = new SelectionModel<string> { SingleSelect = false };
+
+        var grid = CreateGrid(items);
+        grid.Selection = selectionModel;
+        grid.UpdateLayout();
+
+        grid.SelectedItem = items[2];
+        grid.UpdateLayout();
+        Assert.Equal(items[2], selectionModel.SelectedItem);
+        Assert.Equal(2, selectionModel.SelectedIndex);
+
+        selectionModel.Clear();
+        selectionModel.Select(0);
+        grid.UpdateLayout();
+
+        Assert.Equal(items[0], grid.SelectedItem);
+        Assert.Equal(0, grid.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void Sorting_Does_Not_Clear_Selection_Model_Selection()
+    {
+        var items = new ObservableCollection<Item>
+        {
+            new() { Name = "Beta" },
+            new() { Name = "Alpha" },
+            new() { Name = "Gamma" },
+        };
+
+        var view = new DataGridCollectionView(items);
+        var selectionModel = new SelectionModel<Item> { SingleSelect = false };
+
+        var grid = CreateGrid(view, selectionModel);
+        grid.UpdateLayout();
+
+        selectionModel.Select(1); // select "Alpha" after binding
+        grid.UpdateLayout();
+
+        ApplySort(view, nameof(Item.Name), ListSortDirection.Ascending);
+        grid.UpdateLayout();
+
+        Assert.Contains(items[1], selectionModel.SelectedItems);
+        Assert.Contains(items[1], grid.SelectedItems.Cast<object>());
+        Assert.Equal(items[1], grid.SelectedItem);
+        Assert.Equal(0, selectionModel.SelectedIndex); // moved to first after sort
+    }
+
+    [AvaloniaFact]
+    public void Deferred_SelectedIndex_Before_ItemsSource_Is_Applied()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            SelectionMode = DataGridSelectionMode.Extended,
+            AutoGenerateColumns = true
+        };
+
+        grid.Selection.SelectedIndex = 1;
+
+        root.Content = grid;
+        root.Show();
+
+        grid.ItemsSource = items;
+        grid.UpdateLayout();
+
+        Assert.Equal("B", grid.SelectedItem);
+        Assert.Equal(1, grid.SelectedIndex);
+        Assert.Equal(new[] { "B" }, grid.SelectedItems.Cast<string>());
+    }
+
+    [AvaloniaFact]
+    public void Deferred_SelectedItems_Before_ItemsSource_Are_Applied()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            SelectionMode = DataGridSelectionMode.Extended,
+            AutoGenerateColumns = true
+        };
+
+        grid.Selection.SingleSelect = false;
+        grid.Selection.Select(0);
+        grid.Selection.Select(2);
+
+        root.Content = grid;
+        root.Show();
+
+        grid.ItemsSource = items;
+        grid.UpdateLayout();
+
+        var selected = grid.SelectedItems.Cast<string>().OrderBy(x => x).ToArray();
+        Assert.Equal(new[] { "A", "C" }, selected);
+        Assert.Equal(new[] { 0, 2 }, grid.Selection.SelectedIndexes.ToArray());
+    }
+
+    [AvaloniaFact]
+    public void Selection_With_Duplicate_Values_Preserves_Instance_On_Insert()
+    {
+        var items = new ObservableCollection<DupItem>
+        {
+            new("keep"),
+            new("dup"),
+            new("other"),
+            new("dup")
+        };
+
+        var target = items[3];
+
+        var grid = CreateGrid(items);
+        grid.UpdateLayout();
+
+        grid.SelectedItem = target;
+        grid.UpdateLayout();
+
+        items.Insert(0, new DupItem("dup"));
+        grid.UpdateLayout();
+
+        var selected = Assert.IsType<DupItem>(grid.SelectedItem);
+        Assert.True(ReferenceEquals(target, selected));
+        Assert.Equal(FindIndexByReference(items, target), grid.Selection.SelectedIndex);
+    }
+
+    [AvaloniaFact]
+    public void Toggling_SingleSelect_Updates_SelectionMode()
+    {
+        var items = new ObservableCollection<string> { "A", "B" };
+        var grid = CreateGrid(items);
+        grid.UpdateLayout();
+
+        // Start in Extended
+        grid.SelectionMode = DataGridSelectionMode.Extended;
+        grid.Selection.SingleSelect = true;
+        grid.UpdateLayout();
+
+        Assert.Equal(DataGridSelectionMode.Single, grid.SelectionMode);
+
+        grid.Selection.SingleSelect = false;
+        grid.UpdateLayout();
+
+        Assert.Equal(DataGridSelectionMode.Extended, grid.SelectionMode);
+    }
+
+    [AvaloniaFact]
+    public void Binding_SelectedItems_Before_ItemsSource_Is_Replayed()
+    {
+        var items = new ObservableCollection<string> { "A", "B", "C" };
+        var selected = new ObservableCollection<object>();
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            SelectionMode = DataGridSelectionMode.Extended,
+            AutoGenerateColumns = true,
+            SelectedItems = selected
+        };
+
+        selected.Add(items[1]);
+
+        root.Content = grid;
+        root.Show();
+
+        grid.ItemsSource = items;
+        grid.UpdateLayout();
+
+        Assert.Equal("B", grid.SelectedItem);
+        Assert.Equal(new[] { "B" }, grid.SelectedItems.Cast<string>());
+    }
+
+    private static DataGrid CreateGrid(IEnumerable items)
+    {
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            ItemsSource = items,
+            SelectionMode = DataGridSelectionMode.Extended,
+        };
+
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Value",
+            Binding = new Binding(".")
+        });
+
+        root.Content = grid;
+        root.Show();
+        return grid;
+    }
+
+    private static DataGrid CreateGrid(IEnumerable items, SelectionModel<Item> selection)
+    {
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150,
+            Styles =
+            {
+                new StyleInclude((Uri?)null)
+                {
+                    Source = new Uri("avares://Avalonia.Controls.DataGrid/Themes/Simple.xaml")
+                },
+            }
+        };
+
+        var grid = new DataGrid
+        {
+            ItemsSource = items,
+            Selection = selection,
+            SelectionMode = DataGridSelectionMode.Extended,
+            AutoGenerateColumns = true,
+        };
+
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding(nameof(Item.Name))
+        });
+
+        root.Content = grid;
+        root.Show();
+        return grid;
+    }
+
+    private static void ApplySort(DataGridCollectionView view, string propertyPath, ListSortDirection direction)
+    {
+        var assembly = typeof(DataGrid).Assembly;
+        var sortType = assembly.GetType("Avalonia.Collections.DataGridSortDescription+DataGridPathSortDescription")
+                       ?? throw new InvalidOperationException("Could not locate DataGridPathSortDescription type.");
+
+        var sortDescription = Activator.CreateInstance(
+            sortType,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            binder: null,
+            args: new object[] { propertyPath, direction, null, CultureInfo.InvariantCulture },
+            culture: null) as DataGridSortDescription;
+
+        view.SortDescriptions.Clear();
+        view.SortDescriptions.Add(sortDescription!);
+    }
+
+    private class Item
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class DupItem
+    {
+        public DupItem(string name) => Name = name;
+
+        public string Name { get; }
+
+        public override bool Equals(object? obj) =>
+            obj is DupItem other && string.Equals(Name, other.Name, StringComparison.Ordinal);
+
+        public override int GetHashCode() => StringComparer.Ordinal.GetHashCode(Name);
+
+        public override string ToString() => Name;
+    }
+
+    private static int FindIndexByReference<T>(IEnumerable<T> source, T target) where T : class
+    {
+        var i = 0;
+        foreach (var item in source)
+        {
+            if (ReferenceEquals(item, target))
+            {
+                return i;
+            }
+            i++;
+        }
+
+        return -1;
+    }
+
+    private static IReadOnlyList<DataGridRow> GetRows(DataGrid grid)
+    {
+        return grid.GetSelfAndVisualDescendants().OfType<DataGridRow>().ToList();
+    }
+}

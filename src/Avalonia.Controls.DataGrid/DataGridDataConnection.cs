@@ -446,6 +446,11 @@ namespace Avalonia.Controls
                     return collectionView.GetItemAt(index);
                 }
 
+                if (collectionView.PageSize > 0 && index < collectionView.ItemCount)
+                {
+                    return collectionView.GetGlobalItemAt(index);
+                }
+
                 return CanAddNew && index == collectionView.Count
                     ? DataGridCollectionView.NewItemPlaceholder
                     : null;
@@ -539,6 +544,15 @@ namespace Avalonia.Controls
         {
             bool isNewItemPlaceholder = dataItem == DataGridCollectionView.NewItemPlaceholder;
 
+            if (!isNewItemPlaceholder && DataSource is IList referenceList && dataItem is object)
+            {
+                var referenceIndex = FindReferenceIndex(referenceList, dataItem);
+                if (referenceIndex >= 0)
+                {
+                    return referenceIndex;
+                }
+            }
+
             if (DataSource is DataGridCollectionView cv)
             {
                 if (isNewItemPlaceholder)
@@ -546,7 +560,13 @@ namespace Avalonia.Controls
                     return CanAddNew ? cv.Count : -1;
                 }
 
-                return cv.IndexOf(dataItem);
+                int index = cv.IndexOf(dataItem);
+                if (index == -1 && cv.PageSize > 0)
+                {
+                    index = cv.GetGlobalIndexOf(dataItem);
+                }
+
+                return index;
             }
 
             IList list = List;
@@ -579,6 +599,19 @@ namespace Avalonia.Controls
                     return index;
                 }
             }
+            return -1;
+        }
+
+        private static int FindReferenceIndex(IList list, object dataItem)
+        {
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (ReferenceEquals(list[i], dataItem))
+                {
+                    return i;
+                }
+            }
+
             return -1;
         }
 
@@ -775,6 +808,15 @@ namespace Avalonia.Controls
             {
                 throw DataGridError.DataGrid.CannotChangeItemsWhenLoadingRows();
             }
+
+            List<object> selectionSnapshot = _owner.CaptureSelectionSnapshot();
+            if (_owner.Selection != null)
+            {
+                selectionSnapshot = null;
+            }
+            bool restoreSyncingSelectionModel = false;
+            bool previousSyncingSelectionModel = false;
+
             switch (e.Action)
             {
                 case NotifyCollectionChangedAction.Add:
@@ -857,6 +899,9 @@ namespace Avalonia.Controls
                     throw new NotSupportedException(); // 
 
                 case NotifyCollectionChangedAction.Reset:
+                    previousSyncingSelectionModel = _owner.PushSelectionSync();
+                    restoreSyncingSelectionModel = true;
+
                     // Did the data type change during the reset?  If not, we can recycle
                     // the existing rows instead of having to clear them all.  We still need to clear our cached
                     // values for DataType and DataProperties, though, because the collection has been reset.
@@ -874,7 +919,29 @@ namespace Avalonia.Controls
                     break;
             }
 
+            if (selectionSnapshot != null && _owner.Selection == null)
+            {
+                _owner.RestoreSelectionFromSnapshot(selectionSnapshot);
+            }
+
             _owner.UpdatePseudoClasses();
+
+            // Ensure the visual selection state matches the restored selection after mutations
+            _owner.RefreshVisibleSelection();
+
+            if (_owner.Selection == null)
+            {
+                _owner.ResyncSelectionModelFromGridSelection();
+            }
+            else
+            {
+                _owner.RefreshSelectionFromModel();
+            }
+
+            if (restoreSyncingSelectionModel)
+            {
+                _owner.PopSelectionSync(previousSyncingSelectionModel);
+            }
         }
 
         private void AddNewItemRow()

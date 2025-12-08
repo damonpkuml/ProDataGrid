@@ -6,8 +6,10 @@
 
 using Avalonia.Collections;
 using Avalonia.Controls.Utils;
+using Avalonia.Controls.Selection;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
@@ -99,6 +101,8 @@ namespace Avalonia.Controls
                     DataConnection.WireEvents(DataConnection.DataSource);
                 }
 
+                UpdateSelectionModelSource();
+
                 // Wait for the current cell to be set before we raise any SelectionChanged events
                 _makeFirstDisplayedCellCurrentCellPending = true;
 
@@ -111,10 +115,28 @@ namespace Avalonia.Controls
 
                 // Set the SlotCount (from the data count and number of row group headers) before we make the default selection
                 PopulateRowGroupHeadersTable();
-                SelectedItem = null;
+                var modelSelectionPending = _selectionModelAdapter?.Model != null &&
+                    (_selectionModelAdapter.Model.SelectedIndex >= 0 ||
+                     _selectionModelAdapter.Model.SelectedItems.Count > 0);
+
+                if (!modelSelectionPending)
+                {
+                    SelectedItem = null;
                 if (DataConnection.CollectionView != null && setDefaultSelection)
                 {
                     SelectedItem = DataConnection.CollectionView.CurrentItem;
+                }
+
+                SyncSelectionModelFromGridSelection();
+
+                if (_selectedItemsBinding != null && _selectedItemsBinding.Count > 0)
+                {
+                    ApplySelectedItemsFromBinding(_selectedItemsBinding);
+                }
+            }
+                else
+                {
+                    ApplySelectionFromSelectionModel();
                 }
 
                 // Treat this like the DataGrid has never been measured because all calculations at
@@ -125,6 +147,151 @@ namespace Avalonia.Controls
 
                 UpdatePseudoClasses();
             }
+        }
+
+        private void UpdateSelectionModelSource()
+        {
+            if (_selectionModelAdapter != null)
+            {
+                _syncingSelectionModel = true;
+                try
+                {
+                    var view = DataConnection?.CollectionView;
+                    IEnumerable? source = view;
+
+                    if (view is DataGridCollectionView paged && paged.PageSize > 0)
+                    {
+                        _pagedSelectionSource?.Dispose();
+                        _pagedSelectionSource = new DataGridSelection.DataGridPagedSelectionSource(paged);
+                        source = _pagedSelectionSource;
+                    }
+                    else
+                    {
+                        _pagedSelectionSource?.Dispose();
+                        _pagedSelectionSource = null;
+                    }
+
+                    if (view != null &&
+                        _selectionModelAdapter.Model.Source != null &&
+                        _selectionModelAdapter.Model.Source != source &&
+                        !ReferenceEquals(_selectionModelAdapter.Model.Source, source) &&
+                        !ReferenceEquals(_selectionModelAdapter.Model.Source, view))
+                    {
+                        throw new InvalidOperationException(
+                            "The supplied ISelectionModel already has an assigned Source but this collection is different to the Items on the control.");
+                    }
+
+                    _selectionModelAdapter.Model.Source = source;
+                }
+                finally
+                {
+                    _syncingSelectionModel = false;
+                }
+            }
+        }
+
+        internal List<object> CaptureSelectionSnapshot()
+        {
+            // Let selection model track changes itself; snapshots are only needed for legacy selection.
+            if (_selectionModelAdapter != null)
+            {
+                return null;
+            }
+
+            if (SelectedItems is { Count: > 0 })
+            {
+                return new List<object>(SelectedItems.Cast<object>());
+            }
+
+            return null;
+        }
+
+        internal void RestoreSelectionFromSnapshot(IReadOnlyList<object> selectedItems)
+        {
+            if (_selectionModelAdapter == null || selectedItems == null)
+            {
+                return;
+            }
+
+            _syncingSelectionModel = true;
+            try
+            {
+                int firstIndex = -1;
+
+                using (_selectionModelAdapter.SelectedItemsView.SuppressNotifications())
+                using (_selectionModelAdapter.Model.BatchUpdate())
+                {
+                    _selectionModelAdapter.Model.Clear();
+                    foreach (object item in selectedItems)
+                    {
+                        int index = GetSelectionModelIndexOfItem(item);
+                        if (index >= 0)
+                        {
+                            if (firstIndex == -1)
+                            {
+                                firstIndex = index;
+                            }
+
+                            _selectionModelAdapter.Select(index);
+                        }
+                    }
+                }
+
+                if (firstIndex >= 0)
+                {
+                    _preferredSelectionIndex = firstIndex;
+                }
+
+                ApplySelectionFromSelectionModel();
+
+                foreach (object item in selectedItems)
+                {
+                    int index = GetSelectionModelIndexOfItem(item);
+                    if (index >= 0)
+                    {
+                        SetValueNoCallback(SelectedItemProperty, item);
+                        SetValueNoCallback(SelectedIndexProperty, index);
+                        break;
+                    }
+                }
+            }
+            finally
+            {
+                _syncingSelectionModel = false;
+            }
+        }
+
+        private void SyncSelectionModelFromGridSelection()
+        {
+            if (_selectionModelAdapter == null || DataConnection?.CollectionView == null || _syncingSelectionModel)
+            {
+                return;
+            }
+
+            _selectionModelAdapter.Model.BeginBatchUpdate();
+            _syncingSelectionModel = true;
+            try
+            {
+                _selectionModelAdapter.Model.Clear();
+                foreach (object item in _selectedItems)
+                {
+                    int index = GetSelectionModelIndexOfItem(item);
+                    if (index >= 0)
+                    {
+                        _selectionModelAdapter.Model.Select(index);
+                    }
+                }
+            }
+            finally
+            {
+                _selectionModelAdapter.Model.EndBatchUpdate();
+                _syncingSelectionModel = false;
+            }
+        }
+
+        internal void ResyncSelectionModelFromGridSelection()
+        {
+            SyncSelectionModelFromGridSelection();
         }
 
 
@@ -188,7 +355,13 @@ namespace Avalonia.Controls
 
         internal void UpdateStateOnCurrentChanged(object currentItem, int currentPosition)
         {
-            if (currentItem == CurrentItem && currentItem == SelectedItem && currentPosition == SelectedIndex)
+            var currentSelectionIndex = currentPosition;
+            if (_selectionModelAdapter != null && TryGetPagingInfo(out _, out var pageStart))
+            {
+                currentSelectionIndex = pageStart + currentPosition;
+            }
+
+            if (currentItem == CurrentItem && currentItem == SelectedItem && currentSelectionIndex == SelectedIndex)
             {
                 // The DataGrid's CurrentItem is already up-to-date, so we don't need to do anything
                 return;
@@ -209,10 +382,18 @@ namespace Avalonia.Controls
             }
             _desiredCurrentColumnIndex = -1;
 
-            int slot = currentItem != null ? SlotFromRowIndex(currentPosition) : -1;
+            int slot = currentItem != null ? SlotFromSelectionIndex(currentSelectionIndex) : -1;
             bool currentInSelection = currentItem != null &&
                 slot >= 0 &&
-                _selectedItems.ContainsSlot(slot);
+                GetRowSelection(slot);
+
+            if (_selectionModelAdapter != null &&
+                _selectionModelAdapter.Model.SelectedIndexes.Count > 0 &&
+                !currentInSelection)
+            {
+                ApplySelectionFromSelectionModel();
+                return;
+            }
 
             try
             {
