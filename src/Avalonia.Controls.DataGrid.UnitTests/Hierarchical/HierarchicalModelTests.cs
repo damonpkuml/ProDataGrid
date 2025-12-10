@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls.DataGridHierarchical;
 using Xunit;
 
@@ -413,5 +415,55 @@ public class HierarchicalModelTests
         Assert.False(model.GetNode(1).IsExpanded);
         Assert.Equal(2, model.Count);
         Assert.Equal(1, model.Root!.ExpandedCount);
+    }
+
+    [Fact]
+    public async Task ChildrenSelectorAsync_LoadsChildren()
+    {
+        var root = new Item("root");
+        root.Children.Add(new Item("child"));
+
+        var model = new HierarchicalModel(new HierarchicalOptions
+        {
+            ChildrenSelectorAsync = async (item, ct) =>
+            {
+                await Task.Delay(10, ct);
+                return ((Item)item).Children;
+            }
+        });
+
+        model.SetRoot(root);
+        await model.ExpandAsync(model.Root!);
+
+        Assert.Equal(2, model.Count);
+        Assert.False(model.Root!.IsLoading);
+        Assert.True(model.Root!.IsExpanded);
+    }
+
+    [Fact]
+    public async Task ChildrenSelectorAsync_CanBeCancelled()
+    {
+        var root = new Item("root");
+        root.Children.Add(new Item("child"));
+
+        var model = new HierarchicalModel(new HierarchicalOptions
+        {
+            ChildrenSelectorAsync = async (item, ct) =>
+            {
+                await Task.Delay(50, ct);
+                return ((Item)item).Children;
+            }
+        });
+
+        model.SetRoot(root);
+
+        using var cts = new CancellationTokenSource();
+        var expandTask = model.ExpandAsync(model.Root!, cts.Token);
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => expandTask);
+        Assert.False(model.Root!.IsLoading);
+        Assert.False(model.Root!.IsExpanded);
+        Assert.Equal(1, model.Count);
     }
 }

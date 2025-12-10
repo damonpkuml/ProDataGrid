@@ -4,6 +4,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Avalonia.Controls.DataGridHierarchical
 {
@@ -16,6 +18,11 @@ namespace Avalonia.Controls.DataGridHierarchical
         /// Delegate used to resolve children for a given item.
         /// </summary>
         public Func<object, IEnumerable?>? ChildrenSelector { get; set; }
+
+        /// <summary>
+        /// Async delegate used to resolve children for a given item.
+        /// </summary>
+        public Func<object, CancellationToken, Task<IEnumerable?>>? ChildrenSelectorAsync { get; set; }
 
         /// <summary>
         /// Property path used to fetch children when <see cref="ChildrenSelector"/> is not supplied.
