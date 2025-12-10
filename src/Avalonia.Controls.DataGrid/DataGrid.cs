@@ -131,6 +131,8 @@ namespace Avalonia.Controls
         private Avalonia.Controls.DataGridHierarchical.IDataGridHierarchicalModelFactory _hierarchicalModelFactory;
         private Avalonia.Controls.DataGridHierarchical.IDataGridHierarchicalAdapterFactory _hierarchicalAdapterFactory;
         private bool _hierarchicalRowsEnabled;
+        private int _hierarchicalRefreshSuppressionCount;
+        private bool _pendingHierarchicalRefresh;
 
         // Nth row of rows 0..N that make up the RowHeightEstimate
         private int _lastEstimatedRow;
@@ -1272,7 +1274,39 @@ namespace Avalonia.Controls
         {
             if (_hierarchicalRowsEnabled)
             {
+                if (_hierarchicalRefreshSuppressionCount > 0)
+                {
+                    _pendingHierarchicalRefresh = true;
+                    return;
+                }
+
                 RefreshRowsAndColumns(clearRows: false);
+            }
+        }
+
+        private void RunHierarchicalAction(Action action)
+        {
+            if (action == null)
+            {
+                return;
+            }
+
+            _hierarchicalRefreshSuppressionCount++;
+            try
+            {
+                action();
+            }
+            finally
+            {
+                _hierarchicalRefreshSuppressionCount = Math.Max(0, _hierarchicalRefreshSuppressionCount - 1);
+                if (_hierarchicalRefreshSuppressionCount == 0 && _pendingHierarchicalRefresh)
+                {
+                    _pendingHierarchicalRefresh = false;
+                    if (_hierarchicalRowsEnabled)
+                    {
+                        RefreshRowsAndColumns(clearRows: false);
+                    }
+                }
             }
         }
 

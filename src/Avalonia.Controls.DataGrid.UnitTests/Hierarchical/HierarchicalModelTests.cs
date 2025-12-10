@@ -11,11 +11,11 @@ using Xunit;
 
 namespace Avalonia.Controls.DataGridTests.Hierarchical;
 
-public class HierarchicalModelTests
-{
-    private class Item
+    public class HierarchicalModelTests
     {
-        public Item(string name)
+        private class Item
+        {
+            public Item(string name)
         {
             Name = name;
             Children = new ObservableCollection<Item>();
@@ -543,6 +543,155 @@ public class HierarchicalModelTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => expandTask);
         Assert.False(model.Root!.IsLoading);
         Assert.False(model.Root!.IsExpanded);
+        Assert.Equal(1, model.Count);
+    }
+
+    [Fact]
+    public void Expand_Collapse_RaiseFlattenedChanges()
+    {
+        var root = new Item("root");
+        root.Children.Add(new Item("child"));
+        var model = CreateModel();
+        model.SetRoot(root);
+
+        List<FlattenedChange> changes = new();
+        model.FlattenedChanged += (_, e) => changes.AddRange(e.Changes);
+
+        model.Expand(model.Root!);
+        model.Collapse(model.Root!);
+
+        Assert.Collection(
+            changes,
+            c =>
+            {
+                Assert.Equal(1, c.Index);
+                Assert.Equal(0, c.OldCount);
+                Assert.Equal(1, c.NewCount);
+            },
+            c =>
+            {
+                Assert.Equal(1, c.Index);
+                Assert.Equal(1, c.OldCount);
+                Assert.Equal(0, c.NewCount);
+            });
+    }
+
+    [Fact]
+    public void Incc_Add_RaisesFlattenedChange()
+    {
+        var root = new Item("root");
+        var model = CreateModel();
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+
+        FlattenedChangedEventArgs? args = null;
+        model.FlattenedChanged += (_, e) => args = e;
+
+        root.Children.Add(new Item("child"));
+
+        Assert.NotNull(args);
+        var change = Assert.Single(args!.Changes);
+        Assert.Equal(1, change.Index);
+        Assert.Equal(0, change.OldCount);
+        Assert.Equal(1, change.NewCount);
+        Assert.Equal("child", ((Item)model.GetItem(1)!).Name);
+    }
+
+    [Fact]
+    public void LoadFailure_MarksNodeAsLeaf_AndRaisesEvent()
+    {
+        var root = new Item("root");
+        var model = new HierarchicalModel(new HierarchicalOptions
+        {
+            ChildrenSelector = _ => throw new InvalidOperationException("boom")
+        });
+
+        HierarchicalNodeLoadFailedEventArgs? failure = null;
+        model.NodeLoadFailed += (_, e) => failure = e;
+
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+
+        Assert.True(model.Root!.IsLeaf);
+        Assert.True(model.Root!.IsExpanded);
+        Assert.Equal(1, model.Count);
+        Assert.NotNull(failure);
+        Assert.Same(model.Root, failure!.Node);
+        Assert.IsType<InvalidOperationException>(failure.Error);
+    }
+
+    [Fact]
+    public void Incc_Replace_RaisesSingleRefreshChange()
+    {
+        var root = new Item("root");
+        var c1 = new Item("c1");
+        var c2 = new Item("c2");
+        root.Children.Add(c1);
+        root.Children.Add(c2);
+        var model = CreateModel();
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+
+        FlattenedChangedEventArgs? args = null;
+        model.FlattenedChanged += (_, e) => args = e;
+
+        root.Children[1] = new Item("c3"); // Replace action
+
+        var change = Assert.Single(args!.Changes);
+        Assert.Equal(1, change.Index);
+        Assert.Equal(2, change.OldCount);
+        Assert.Equal(2, change.NewCount);
+        Assert.Equal("c1", ((Item)model.GetItem(1)!).Name);
+        Assert.Equal("c3", ((Item)model.GetItem(2)!).Name);
+    }
+
+    [Fact]
+    public void Incc_Move_RaisesSingleRefreshChange()
+    {
+        var root = new Item("root");
+        root.Children.Add(new Item("a"));
+        root.Children.Add(new Item("b"));
+        root.Children.Add(new Item("c"));
+        var model = CreateModel();
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+
+        FlattenedChangedEventArgs? args = null;
+        model.FlattenedChanged += (_, e) => args = e;
+
+        root.Children.Move(0, 2);
+
+        var change = Assert.Single(args!.Changes);
+        Assert.Equal(1, change.Index);
+        Assert.Equal(3, change.OldCount);
+        Assert.Equal(3, change.NewCount);
+        Assert.Equal("b", ((Item)model.GetItem(1)!).Name);
+        Assert.Equal("c", ((Item)model.GetItem(2)!).Name);
+        Assert.Equal("a", ((Item)model.GetItem(3)!).Name);
+    }
+
+    [Fact]
+    public void Collapse_VirtualizesChildren()
+    {
+        var root = new Item("root");
+        var child = new Item("child");
+        child.Children.Add(new Item("grand"));
+        root.Children.Add(child);
+
+        var model = new HierarchicalModel(new HierarchicalOptions
+        {
+            ChildrenSelector = item => ((Item)item).Children,
+            VirtualizeChildren = true
+        });
+
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+        model.Expand(model.GetNode(1));
+        Assert.Equal(3, model.Count);
+
+        model.Collapse(model.Root!);
+
+        Assert.Empty(model.Root!.Children);
         Assert.Equal(1, model.Count);
     }
 }

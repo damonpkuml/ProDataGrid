@@ -190,6 +190,51 @@ public class HierarchicalIntegrationTests
     }
 
     [Fact]
+    public void Selection_Reapplies_AfterSortAndExpansion()
+    {
+        var root = new Item("root");
+        var childA = new Item("b");
+        childA.Children.Add(new Item("z"));
+        var childB = new Item("a");
+        childB.Children.Add(new Item("y"));
+        root.Children.Add(childA);
+        root.Children.Add(childB);
+
+        var model = CreateModel();
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+        model.Expand(model.GetNode(1));
+        model.Expand(model.GetNode(3)); // expand both children
+
+        var selection = new SelectionModel<object>();
+        var targetItem = childA.Children[0];
+        var initialIndex = model.IndexOf(targetItem);
+        selection.Select(initialIndex);
+        Assert.True(selection.IsSelected(initialIndex));
+
+        var sorting = new SortingModel();
+        sorting.SortingChanged += (_, e) =>
+        {
+            var comparer = BuildComparer(e.NewDescriptors);
+            model.ApplySiblingComparer(comparer, recursive: true);
+        };
+
+        var column = new DataGridTextColumn { SortMemberPath = "Name" };
+        var adapter = new LocalHierarchicalSortingAdapter(
+            sorting,
+            () => new[] { column });
+
+        adapter.HandleHeaderClick(column, KeyModifiers.None); // ascending sort
+
+        var newIndex = model.IndexOf(targetItem);
+        Assert.NotEqual(initialIndex, newIndex); // moved due to sort
+        selection.Clear();
+        selection.Select(newIndex);
+        Assert.True(selection.IsSelected(newIndex));
+        Assert.False(selection.IsSelected(initialIndex));
+    }
+
+    [Fact]
     public void FilteringModel_Filters_By_Name_Contains()
     {
         var items = new[]

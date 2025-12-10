@@ -298,7 +298,7 @@ namespace Avalonia.Controls
 
 
 
-        private bool ProcessLeftKey(bool shift, bool ctrl)
+        private bool ProcessLeftKey(bool shift, bool ctrl, bool alt)
         {
             DataGridColumn dataGridColumn = ColumnsInternal.FirstVisibleNonFillerColumn;
             int firstVisibleColumnIndex = (dataGridColumn == null) ? -1 : dataGridColumn.Index;
@@ -308,17 +308,33 @@ namespace Avalonia.Controls
                 return false;
             }
 
-            if (WaitForLostFocus(() => ProcessLeftKey(shift, ctrl)))
+            if (WaitForLostFocus(() => ProcessLeftKey(shift, ctrl, alt)))
             {
                 return true;
             }
 
-            if (_hierarchicalRowsEnabled && _hierarchicalAdapter != null && CurrentSlot >= 0 && CurrentSlot < _hierarchicalAdapter.Count)
+            if (_hierarchicalRowsEnabled && _hierarchicalAdapter != null)
             {
-                if (_hierarchicalAdapter.IsExpandable(CurrentSlot) && _hierarchicalAdapter.IsExpanded(CurrentSlot))
+                if (TryHandleGroupSlotAsNode(CurrentSlot, GroupSlotAction.Collapse, subtree: alt))
                 {
-                    _hierarchicalAdapter.Collapse(CurrentSlot);
                     return true;
+                }
+
+                if (TryGetHierarchicalIndexFromSlot(CurrentSlot, out var hierarchicalIndex))
+                {
+                    if (alt)
+                    {
+                        var node = _hierarchicalAdapter.NodeAt(hierarchicalIndex);
+                        RunHierarchicalAction(() => _hierarchicalAdapter.CollapseAll(node));
+                        return true;
+                    }
+
+                    if (_hierarchicalAdapter.IsExpandable(hierarchicalIndex) &&
+                        _hierarchicalAdapter.IsExpanded(hierarchicalIndex))
+                    {
+                        _hierarchicalAdapter.Collapse(hierarchicalIndex);
+                        return true;
+                    }
                 }
             }
 
@@ -378,7 +394,7 @@ namespace Avalonia.Controls
 
 
 
-        private bool ProcessRightKey(bool shift, bool ctrl)
+        private bool ProcessRightKey(bool shift, bool ctrl, bool alt)
         {
             DataGridColumn dataGridColumn = ColumnsInternal.LastVisibleColumn;
             int lastVisibleColumnIndex = (dataGridColumn == null) ? -1 : dataGridColumn.Index;
@@ -388,18 +404,31 @@ namespace Avalonia.Controls
                 return false;
             }
 
-            if (WaitForLostFocus(delegate { ProcessRightKey(shift, ctrl); }))
+            if (WaitForLostFocus(delegate { ProcessRightKey(shift, ctrl, alt); }))
             {
                 return true;
             }
 
-            if (_hierarchicalRowsEnabled && _hierarchicalAdapter != null && CurrentSlot >= 0 && CurrentSlot < _hierarchicalAdapter.Count)
+            if (_hierarchicalRowsEnabled && _hierarchicalAdapter != null)
             {
-                if (_hierarchicalAdapter.IsExpandable(CurrentSlot))
+                if (TryHandleGroupSlotAsNode(CurrentSlot, GroupSlotAction.Expand, subtree: alt))
                 {
-                    if (!_hierarchicalAdapter.IsExpanded(CurrentSlot))
+                    return true;
+                }
+
+                if (TryGetHierarchicalIndexFromSlot(CurrentSlot, out var hierarchicalIndex) &&
+                    _hierarchicalAdapter.IsExpandable(hierarchicalIndex))
+                {
+                    if (alt)
                     {
-                        _hierarchicalAdapter.Expand(CurrentSlot);
+                        var node = _hierarchicalAdapter.NodeAt(hierarchicalIndex);
+                        RunHierarchicalAction(() => _hierarchicalAdapter.ExpandAll(node));
+                        return true;
+                    }
+
+                    if (!_hierarchicalAdapter.IsExpanded(hierarchicalIndex))
+                    {
+                        _hierarchicalAdapter.Expand(hierarchicalIndex);
                         return true;
                     }
                 }

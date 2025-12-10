@@ -49,6 +49,49 @@ public class HierarchicalHeadlessTests
         RunSortScenario("Item.Name");
     }
 
+    [AvaloniaFact]
+    public void Alt_SubtreeToggle_Expands_All_Nodes()
+    {
+        var root = new Item("root");
+        var child = new Item("child");
+        child.Children.Add(new Item("grand"));
+        root.Children.Add(child);
+
+        var model = new HierarchicalModel(new HierarchicalOptions
+        {
+            ChildrenSelector = o => ((Item)o).Children
+        });
+        model.SetRoot(root);
+
+        var grid = new DataGrid
+        {
+            HierarchicalModel = model,
+            HierarchicalRowsEnabled = true,
+            AutoGenerateColumns = false,
+            ItemsSource = model.Flattened
+        };
+
+        grid.Columns.Add(new DataGridHierarchicalColumn
+        {
+            Header = "Name",
+            Binding = new Avalonia.Data.Binding("Item.Name")
+        });
+
+        grid.ApplyTemplate();
+        grid.UpdateLayout();
+
+        var toggleMethod = typeof(DataGrid).GetMethod(
+            "TryToggleHierarchicalAtSlot",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        var toggled = (bool)toggleMethod!.Invoke(grid, new object[] { 0, true })!;
+
+        Assert.True(toggled);
+        Assert.True(model.Root!.IsExpanded);
+        Assert.True(model.GetNode(1).IsExpanded);
+        Assert.Equal(3, model.Count);
+    }
+
     private static void RunSortScenario(string sortMemberPath)
     {
         var root = new Item("root");

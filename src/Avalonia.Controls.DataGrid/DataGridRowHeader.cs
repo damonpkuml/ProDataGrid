@@ -202,7 +202,7 @@ namespace Avalonia.Controls.Primitives
                     OwningGrid.Focus();
                 }
 
-                if (OwningGrid != null && OwningGrid.TryToggleHierarchicalAtSlot(Slot))
+                if (OwningGrid != null && OwningGrid.TryToggleHierarchicalAtSlot(Slot, toggleSubtree: e.KeyModifiers.HasFlag(KeyModifiers.Alt)))
                 {
                     e.Handled = true;
                     return;
