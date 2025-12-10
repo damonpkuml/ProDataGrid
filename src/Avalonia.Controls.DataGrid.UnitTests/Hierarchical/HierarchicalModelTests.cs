@@ -120,6 +120,62 @@ public class HierarchicalModelTests
     }
 
     [Fact]
+    public void FlattenedVersion_Increments_OnChanges()
+    {
+        var model = CreateModel();
+        var root = new Item("root");
+        root.Children.Add(new Item("child"));
+        model.SetRoot(root);
+
+        Assert.Equal(1, model.FlattenedVersion);
+
+        model.Expand(model.Root!);
+        Assert.Equal(2, model.FlattenedVersion);
+
+        model.Collapse(model.Root!);
+        Assert.Equal(3, model.FlattenedVersion);
+    }
+
+    [Fact]
+    public void IndexOf_Returns_VisibleIndex()
+    {
+        var model = CreateModel();
+        var root = new Item("root");
+        var child = new Item("child");
+        root.Children.Add(child);
+        model.SetRoot(root);
+
+        Assert.Equal(0, model.IndexOf(model.Root!));
+        Assert.Equal(-1, model.IndexOf(child));
+
+        model.Expand(model.Root!);
+
+        Assert.Equal(1, model.IndexOf(child));
+        Assert.Equal(1, model.IndexOf(model.GetNode(1)));
+    }
+
+    [Fact]
+    public void ApplySiblingComparer_SortsAndStoresComparer()
+    {
+        var root = new Item("root");
+        root.Children.Add(new Item("b"));
+        root.Children.Add(new Item("a"));
+
+        var model = new HierarchicalModel(new HierarchicalOptions());
+        model.SetRoot(root);
+        model.Expand(model.Root!);
+
+        var comparer = Comparer<object>.Create((x, y) =>
+            string.Compare(((Item)x).Name, ((Item)y).Name, StringComparison.Ordinal));
+
+        model.ApplySiblingComparer(comparer);
+
+        Assert.Same(comparer, model.Options.SiblingComparer);
+        Assert.Equal("a", ((Item)model.GetItem(1)!).Name);
+        Assert.Equal("b", ((Item)model.GetItem(2)!).Name);
+    }
+
+    [Fact]
     public void AutoExpandRoot_Respects_MaxDepth()
     {
         var root = new Item("root");

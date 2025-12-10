@@ -47,12 +47,18 @@ namespace Avalonia.Controls.DataGridHierarchical
 
     public class FlattenedChangedEventArgs : EventArgs
     {
-        public FlattenedChangedEventArgs(IReadOnlyList<FlattenedChange> changes)
+        public FlattenedChangedEventArgs(IReadOnlyList<FlattenedChange> changes, int version = 0)
         {
             Changes = changes ?? throw new ArgumentNullException(nameof(changes));
+            Version = version;
         }
 
         public IReadOnlyList<FlattenedChange> Changes { get; }
+
+        /// <summary>
+        /// Monotonically increasing version number for the flattened list.
+        /// </summary>
+        public int Version { get; }
     }
 
     public class HierarchicalNodeEventArgs : EventArgs
@@ -107,6 +113,11 @@ namespace Avalonia.Controls.DataGridHierarchical
         /// </summary>
         int Count { get; }
 
+        /// <summary>
+        /// Gets a monotonically increasing version for the flattened list. Incremented on every flattened change notification.
+        /// </summary>
+        int FlattenedVersion { get; }
+
         event EventHandler<FlattenedChangedEventArgs>? FlattenedChanged;
 
         event EventHandler<HierarchicalNodeEventArgs>? NodeExpanded;
@@ -132,6 +143,20 @@ namespace Avalonia.Controls.DataGridHierarchical
         /// <param name="index">Visible index.</param>
         /// <returns>Node at the index.</returns>
         HierarchicalNode GetNode(int index);
+
+        /// <summary>
+        /// Retrieves the visible index of the specified node, or -1 when not visible.
+        /// </summary>
+        /// <param name="node">Node instance.</param>
+        /// <returns>Visible index or -1.</returns>
+        int IndexOf(HierarchicalNode node);
+
+        /// <summary>
+        /// Retrieves the visible index of the specified item, or -1 when not visible.
+        /// </summary>
+        /// <param name="item">Item instance.</param>
+        /// <returns>Visible index or -1.</returns>
+        int IndexOf(object item);
 
         /// <summary>
         /// Expands a node and realizes its visible children.
@@ -195,6 +220,13 @@ namespace Avalonia.Controls.DataGridHierarchical
         void Sort(HierarchicalNode? node = null, IComparer<object>? comparer = null, bool recursive = true);
 
         /// <summary>
+        /// Applies the specified comparer to siblings (optionally recursive) and stores it in <see cref="HierarchicalOptions.SiblingComparer"/>.
+        /// </summary>
+        /// <param name="comparer">Comparer to apply.</param>
+        /// <param name="recursive">When true, recursively sorts expanded descendants.</param>
+        void ApplySiblingComparer(IComparer<object>? comparer, bool recursive = true);
+
+        /// <summary>
         /// Expands the specified node (or root when null) and all descendants up to the provided depth.
         /// Depth is relative to the starting node; null expands the full subtree.
         /// </summary>
@@ -244,6 +276,8 @@ namespace Avalonia.Controls.DataGridHierarchical
 
         public int Count => _flattened.Count;
 
+        public int FlattenedVersion { get; private set; }
+
         public event EventHandler<FlattenedChangedEventArgs>? FlattenedChanged;
 
         public event EventHandler<HierarchicalNodeEventArgs>? NodeExpanded;
@@ -285,6 +319,27 @@ namespace Avalonia.Controls.DataGridHierarchical
             }
 
             return _flattened[index];
+        }
+
+        public int IndexOf(HierarchicalNode node)
+        {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
+            return _flattened.IndexOf(node);
+        }
+
+        public int IndexOf(object item)
+        {
+            if (item == null)
+            {
+                return -1;
+            }
+
+            var node = FindNode(item);
+            return node != null ? IndexOf(node) : -1;
         }
 
         public void Expand(HierarchicalNode node)
@@ -494,6 +549,12 @@ namespace Avalonia.Controls.DataGridHierarchical
             }
         }
 
+        public void ApplySiblingComparer(IComparer<object>? comparer, bool recursive = true)
+        {
+            Options.SiblingComparer = comparer;
+            Sort(null, comparer, recursive);
+        }
+
         public void ExpandAll(HierarchicalNode? node = null, int? maxDepth = null)
         {
             var start = node ?? Root;
@@ -571,7 +632,8 @@ namespace Avalonia.Controls.DataGridHierarchical
 
         protected virtual void OnFlattenedChanged(IReadOnlyList<FlattenedChange> changes)
         {
-            FlattenedChanged?.Invoke(this, new FlattenedChangedEventArgs(changes));
+            var version = ++FlattenedVersion;
+            FlattenedChanged?.Invoke(this, new FlattenedChangedEventArgs(changes, version));
         }
 
         protected virtual void OnNodeExpanded(HierarchicalNode node)

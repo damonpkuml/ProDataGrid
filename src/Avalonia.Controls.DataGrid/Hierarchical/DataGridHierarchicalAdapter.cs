@@ -57,28 +57,13 @@ namespace Avalonia.Controls.DataGridHierarchical
 
         public void Collapse(int index) => _model.Collapse(_model.GetNode(index));
 
+        public int IndexOfNode(HierarchicalNode node) => _model.IndexOf(node);
+
+        public int IndexOfItem(object item) => _model.IndexOf(item);
+
         public int IndexOf(object item)
         {
-            if (item == null)
-            {
-                return -1;
-            }
-
-            var node = _model.FindNode(item);
-            if (node == null)
-            {
-                return -1;
-            }
-
-            for (int i = 0; i < _model.Flattened.Count; i++)
-            {
-                if (ReferenceEquals(_model.Flattened[i], node))
-                {
-                    return i;
-                }
-            }
-
-            return -1;
+            return IndexOfItem(item);
         }
 
         public event EventHandler<FlattenedChangedEventArgs>? FlattenedChanged;
@@ -96,6 +81,11 @@ namespace Avalonia.Controls.DataGridHierarchical
         public void Sort(HierarchicalNode? node = null, IComparer<object>? comparer = null, bool recursive = true)
         {
             _model.Sort(node, comparer, recursive);
+        }
+
+        public void ApplySiblingComparer(IComparer<object>? comparer, bool recursive = true)
+        {
+            _model.ApplySiblingComparer(comparer, recursive);
         }
 
         public void ExpandAll(HierarchicalNode? node = null, int? maxDepth = null) => _model.ExpandAll(node, maxDepth);
