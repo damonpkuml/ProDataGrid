@@ -143,6 +143,10 @@ namespace Avalonia.Controls
             {
                 _boundColumnsNotifications.CollectionChanged += BoundColumns_CollectionChanged;
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Columns source does not implement INotifyCollectionChanged; applying snapshot without live updates.");
+            }
             _boundColumnsThreadId = Environment.CurrentManagedThreadId;
 
             _twoWayColumnsAvailable =

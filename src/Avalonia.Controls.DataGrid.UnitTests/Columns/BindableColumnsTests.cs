@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -89,6 +90,201 @@ namespace Avalonia.Controls.DataGridTests.Columns
             source.Add(second);
 
             Assert.DoesNotContain(second, grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneWay_To_ObservableCollection_Updates_On_Change()
+        {
+            var vm = new ColumnsHolder(new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") }
+            });
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns") { Mode = BindingMode.OneWay });
+            grid.DataContext = vm;
+
+            var collection = (ObservableCollection<DataGridColumn>)vm.Columns;
+
+            Assert.Contains(collection[0], grid.ColumnsInternal.ItemsInternal);
+
+            var second = new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") };
+            collection.Add(second);
+
+            Assert.Contains(second, grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneTime_Does_Not_Refresh_On_Property_Replace()
+        {
+            var initial = new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") }
+            };
+            var replacement = new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") }
+            };
+
+            var vm = new ColumnsHolder(initial);
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns") { Mode = BindingMode.OneTime });
+            grid.DataContext = vm;
+
+            Assert.Contains(initial[0], grid.ColumnsInternal.ItemsInternal);
+
+            vm.Columns = replacement;
+
+            Assert.DoesNotContain(replacement[0], grid.ColumnsInternal.ItemsInternal);
+            Assert.Contains(initial[0], grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_TwoWay_Updates_ViewModel_When_Grid_Assigned()
+        {
+            var vm = new ColumnsHolder(new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") }
+            });
+
+            var grid = new DataGrid
+            {
+                ColumnsSynchronizationMode = ColumnsSynchronizationMode.TwoWay
+            };
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns") { Mode = BindingMode.TwoWay });
+            grid.DataContext = vm;
+
+            var replacement = new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "New", Binding = new Binding("New") }
+            };
+
+            grid.Columns = null!;
+            grid.Columns = replacement;
+
+            Assert.Same(replacement, vm.Columns);
+            Assert.Contains(replacement[0], grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneWay_To_List_Snapshot_Only()
+        {
+            var list = new List<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") }
+            };
+            var vm = new ColumnsHolder(list);
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            Assert.Contains(list[0], grid.ColumnsInternal.ItemsInternal);
+
+            var second = new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") };
+            list.Add(second);
+
+            Assert.DoesNotContain(second, grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneWay_To_Enumerable_Snapshot_Only()
+        {
+            var first = new DataGridTextColumn { Header = "First", Binding = new Binding("First") };
+            var source = new EnumerableColumnsSource(first);
+            var vm = new ColumnsHolder(source);
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            Assert.Contains(first, grid.ColumnsInternal.ItemsInternal);
+
+            var second = new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") };
+            source.Add(second);
+
+            Assert.DoesNotContain(second, grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneWay_Remove_In_VM_Removes_From_Grid()
+        {
+            var collection = new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") },
+                new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") },
+            };
+            var vm = new ColumnsHolder(collection);
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            Assert.Equal(2, grid.ColumnsInternal.ItemsInternal.Count(c => c is not DataGridFillerColumn));
+
+            collection.RemoveAt(0);
+
+            Assert.Single(grid.ColumnsInternal.ItemsInternal, c => c is not DataGridFillerColumn);
+            Assert.Equal("Second", grid.ColumnsInternal.ItemsInternal.First(c => c is not DataGridFillerColumn).Header);
+        }
+
+        [Fact]
+        public void Binding_OneWay_Replace_In_VM_Replaces_In_Grid()
+        {
+            var original = new DataGridTextColumn { Header = "First", Binding = new Binding("First") };
+            var replacement = new DataGridTextColumn { Header = "New", Binding = new Binding("New") };
+            var collection = new ObservableCollection<DataGridColumn> { original };
+            var vm = new ColumnsHolder(collection);
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            collection[0] = replacement;
+
+            Assert.DoesNotContain(original, grid.ColumnsInternal.ItemsInternal);
+            Assert.Contains(replacement, grid.ColumnsInternal.ItemsInternal);
+        }
+
+        [Fact]
+        public void Binding_OneWay_Move_In_VM_Reorders_Grid()
+        {
+            var collection = new ObservableCollection<DataGridColumn>
+            {
+                new DataGridTextColumn { Header = "First", Binding = new Binding("First") },
+                new DataGridTextColumn { Header = "Second", Binding = new Binding("Second") },
+            };
+            var vm = new ColumnsHolder(collection);
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            collection.Move(1, 0);
+
+            var ordered = grid.ColumnsInternal.GetDisplayedColumns(c => c is not DataGridFillerColumn).ToList();
+            Assert.Equal(new[] { "Second", "First" }, ordered.Select(c => c.Header));
+        }
+
+        [Fact]
+        public void Binding_OneWay_Reset_In_VM_Reloads_Grid()
+        {
+            var vm = new ColumnsHolder(new TestColumnsCollection
+            {
+                new DataGridTextColumn { Header = "One", Binding = new Binding("One") }
+            });
+
+            var grid = new DataGrid();
+            grid.Bind(DataGrid.ColumnsProperty, new Binding("Columns"));
+            grid.DataContext = vm;
+
+            ((TestColumnsCollection)vm.Columns).ClearAndReset(new[]
+            {
+                new DataGridTextColumn { Header = "Two", Binding = new Binding("Two") }
+            });
+
+            var nonFiller = grid.ColumnsInternal.ItemsInternal.First(c => c is not DataGridFillerColumn);
+            Assert.Equal("Two", nonFiller.Header);
         }
 
         [Fact]
@@ -551,6 +747,31 @@ namespace Avalonia.Controls.DataGridTests.Columns
             public IEnumerator<DataGridColumn> GetEnumerator() => _inner.GetEnumerator();
 
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class ColumnsHolder : INotifyPropertyChanged
+        {
+            private object _columns;
+
+            public ColumnsHolder(object columns)
+            {
+                _columns = columns;
+            }
+
+            public object Columns
+            {
+                get => _columns;
+                set
+                {
+                    if (!ReferenceEquals(_columns, value))
+                    {
+                        _columns = value;
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Columns)));
+                    }
+                }
+            }
+
+            public event PropertyChangedEventHandler? PropertyChanged;
         }
 
         private sealed class ThrowingColumnsList : IList<DataGridColumn>
