@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using Avalonia;
 
 namespace Avalonia.Controls.Primitives
 {
@@ -26,6 +27,7 @@ namespace Avalonia.Controls.Primitives
     {
         private double _fillerLeftEdge;
         private EventHandler<ChildIndexChangedEventArgs> _childIndexChanged;
+        private DataGridRow _owningRow;
 
         // The desired height needs to be cached due to column virtualization; otherwise, the cells
         // would grow and shrink as the DataGrid scrolls horizontally
@@ -43,10 +45,19 @@ namespace Avalonia.Controls.Primitives
             }
         }
 
-        internal DataGridRow OwningRow
+        public static readonly DirectProperty<DataGridCellsPresenter, DataGridRow> OwningRowProperty =
+            AvaloniaProperty.RegisterDirect<DataGridCellsPresenter, DataGridRow>(
+                nameof(OwningRow),
+                o => o.OwningRow,
+                (o, v) => o.OwningRow = v);
+
+        /// <summary>
+        /// Gets the row that owns this cells presenter.
+        /// </summary>
+        public DataGridRow OwningRow
         {
-            get;
-            set;
+            get => _owningRow;
+            internal set => SetAndRaise(OwningRowProperty, ref _owningRow, value);
         }
 
         event EventHandler<ChildIndexChangedEventArgs> IChildIndexProvider.ChildIndexChanged

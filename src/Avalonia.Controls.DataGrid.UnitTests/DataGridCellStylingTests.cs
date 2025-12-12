@@ -58,6 +58,28 @@ public class DataGridCellStylingTests
         }
     }
 
+    [AvaloniaFact]
+    public void OwningColumn_And_OwningRow_Are_Public_And_Assigned()
+    {
+        var (grid, root, column, _) = CreateGridWithCellClasses(layoutNow: false);
+        grid.UpdateLayout();
+
+        try
+        {
+            var cell = GetCellForColumn(grid, column);
+            var owningRow = cell.FindAncestorOfType<DataGridRow>();
+
+            Assert.NotNull(cell.OwningColumn);
+            Assert.Same(column, cell.OwningColumn);
+            Assert.NotNull(cell.OwningRow);
+            Assert.Same(owningRow, cell.OwningRow);
+        }
+        finally
+        {
+            root.Close();
+        }
+    }
+
     private static (DataGrid grid, Window root, DataGridTextColumn column, ObservableCollection<Item> items) CreateGridWithCellClasses(bool layoutNow = true)
     {
         var items = new ObservableCollection<Item>
@@ -121,4 +143,3 @@ public class DataGridCellStylingTests
         public string Group { get; }
     }
 }
-

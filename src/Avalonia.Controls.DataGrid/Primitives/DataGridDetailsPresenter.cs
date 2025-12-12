@@ -9,6 +9,7 @@ using System.Text;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls.Automation.Peers;
 using Avalonia.Media;
+using Avalonia;
 
 namespace Avalonia.Controls.Primitives
 {
@@ -23,6 +24,13 @@ namespace Avalonia.Controls.Primitives
     {
         public static readonly StyledProperty<double> ContentHeightProperty =
             AvaloniaProperty.Register<DataGridDetailsPresenter, double>(nameof(ContentHeight));
+        public static readonly DirectProperty<DataGridDetailsPresenter, DataGridRow?> OwningRowProperty =
+            AvaloniaProperty.RegisterDirect<DataGridDetailsPresenter, DataGridRow?>(
+                nameof(OwningRow),
+                o => o.OwningRow,
+                (o, v) => o.OwningRow = v);
+
+        private DataGridRow? _owningRow;
 
         /// <summary>
         /// Gets or sets the height of the content.
@@ -36,10 +44,13 @@ namespace Avalonia.Controls.Primitives
             set { SetValue(ContentHeightProperty, value); }
         }
 
-        internal DataGridRow? OwningRow
+        /// <summary>
+        /// Gets the row that owns this details presenter.
+        /// </summary>
+        public DataGridRow? OwningRow
         {
-            get;
-            set;
+            get => _owningRow;
+            internal set => SetAndRaise(OwningRowProperty, ref _owningRow, value);
         }
         private DataGrid? OwningGrid => OwningRow?.OwningGrid;
 

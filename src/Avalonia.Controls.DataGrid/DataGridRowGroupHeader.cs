@@ -42,6 +42,7 @@ namespace Avalonia.Controls
         private TextBlock _propertyNameElement;
         private Panel _rootElement;
         private double _totalIndent;
+        private DataGrid _owningGrid;
 
         public static readonly StyledProperty<bool> IsItemCountVisibleProperty =
             AvaloniaProperty.Register<DataGridRowGroupHeader, bool>(nameof(IsItemCountVisible));
@@ -98,6 +99,12 @@ namespace Avalonia.Controls
                 nameof(SublevelIndent),
                 defaultValue: DataGrid.DATAGRID_defaultRowGroupSublevelIndent,
                 validate: IsValidSublevelIndent);
+
+        public static readonly DirectProperty<DataGridRowGroupHeader, DataGrid> OwningGridProperty =
+            AvaloniaProperty.RegisterDirect<DataGridRowGroupHeader, DataGrid>(
+                nameof(OwningGrid),
+                o => o.OwningGrid,
+                (o, v) => o.OwningGrid = v);
 
         private static bool IsValidSublevelIndent(double value)
         {
@@ -166,13 +173,16 @@ namespace Avalonia.Controls
             set;
         }
 
-        internal int Level
+        /// <summary>
+        /// Gets the grid that owns this row group header.
+        /// </summary>
+        public DataGrid OwningGrid
         {
-            get;
-            set;
+            get => _owningGrid;
+            internal set => SetAndRaise(OwningGridProperty, ref _owningGrid, value);
         }
 
-        internal DataGrid OwningGrid
+        internal int Level
         {
             get;
             set;
