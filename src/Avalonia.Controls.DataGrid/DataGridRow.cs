@@ -53,6 +53,7 @@ namespace Avalonia.Controls
         private DataGridRowHeader _headerElement;
         private double _lastHorizontalOffset;
         private int? _mouseOverColumnIndex;
+        private DataGrid _owningGrid;
         private bool _isValid = true;
         private Rectangle _bottomGridLine;
         private bool _areHandlersSuspended;
@@ -141,6 +142,12 @@ namespace Avalonia.Controls
             get { return GetValue(AreDetailsVisibleProperty); }
             set { SetValue(AreDetailsVisibleProperty, value); }
         }
+
+        public static readonly DirectProperty<DataGridRow, DataGrid> OwningGridProperty =
+            AvaloniaProperty.RegisterDirect<DataGridRow, DataGrid>(
+                nameof(OwningGrid),
+                o => o.OwningGrid,
+                (o, v) => o.OwningGrid = v);
 
         static DataGridRow()
         {
@@ -234,10 +241,13 @@ namespace Avalonia.Controls
             }
         }
 
-        internal DataGrid OwningGrid
+        /// <summary>
+        /// Gets the grid that owns this row.
+        /// </summary>
+        public DataGrid OwningGrid
         {
-            get;
-            set;
+            get => _owningGrid;
+            internal set => SetAndRaise(OwningGridProperty, ref _owningGrid, value);
         }
 
         private int _index;

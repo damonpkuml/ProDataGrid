@@ -29,6 +29,7 @@ namespace Avalonia.Controls
 
         private Rectangle _rightGridLine;
         private DataGridColumn _owningColumn;
+        private DataGridRow _owningRow;
 
         bool _isValid = true;
 
@@ -36,6 +37,18 @@ namespace Avalonia.Controls
             AvaloniaProperty.RegisterDirect<DataGridCell, bool>(
                 nameof(IsValid),
                 o => o.IsValid);
+
+        public static readonly DirectProperty<DataGridCell, DataGridColumn> OwningColumnProperty =
+            AvaloniaProperty.RegisterDirect<DataGridCell, DataGridColumn>(
+                nameof(OwningColumn),
+                o => o.OwningColumn,
+                (o, v) => o.OwningColumn = v);
+
+        public static readonly DirectProperty<DataGridCell, DataGridRow> OwningRowProperty =
+            AvaloniaProperty.RegisterDirect<DataGridCell, DataGridRow>(
+                nameof(OwningRow),
+                o => o.OwningRow,
+                (o, v) => o.OwningRow = v);
 
         static DataGridCell()
         {
@@ -54,22 +67,28 @@ namespace Avalonia.Controls
             internal set { SetAndRaise(IsValidProperty, ref _isValid, value); }
         }
 
-        internal DataGridColumn OwningColumn
+        /// <summary>
+        /// Gets the column that owns this cell.
+        /// </summary>
+        public DataGridColumn OwningColumn
         {
             get => _owningColumn;
-            set
+            internal set
             {
                 if (_owningColumn != value)
                 {
-                    _owningColumn = value;
+                    SetAndRaise(OwningColumnProperty, ref _owningColumn, value);
                     OnOwningColumnSet(value);
                 }
             }
         }
-        internal DataGridRow OwningRow
+        /// <summary>
+        /// Gets the row that owns this cell.
+        /// </summary>
+        public DataGridRow OwningRow
         {
-            get;
-            set;
+            get => _owningRow;
+            internal set => SetAndRaise(OwningRowProperty, ref _owningRow, value);
         }
 
         internal DataGrid OwningGrid

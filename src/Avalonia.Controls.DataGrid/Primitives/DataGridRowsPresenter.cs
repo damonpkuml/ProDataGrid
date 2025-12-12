@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Avalonia;
 
 namespace Avalonia.Controls.Primitives
 {
@@ -29,16 +30,26 @@ namespace Avalonia.Controls.Primitives
     {
         private EventHandler<ChildIndexChangedEventArgs>? _childIndexChanged;
         private int _virtualizationGuardDepth;
+        private DataGrid? _owningGrid;
 
         public DataGridRowsPresenter()
         {
             AddHandler(Gestures.ScrollGestureEvent, OnScrollGesture);
         }
 
-        internal DataGrid? OwningGrid
+        public static readonly DirectProperty<DataGridRowsPresenter, DataGrid?> OwningGridProperty =
+            AvaloniaProperty.RegisterDirect<DataGridRowsPresenter, DataGrid?>(
+                nameof(OwningGrid),
+                o => o.OwningGrid,
+                (o, v) => o.OwningGrid = v);
+
+        /// <summary>
+        /// Gets the grid that owns this rows presenter.
+        /// </summary>
+        public DataGrid? OwningGrid
         {
-            get;
-            set;
+            get => _owningGrid;
+            internal set => SetAndRaise(OwningGridProperty, ref _owningGrid, value);
         }
 
         internal bool VirtualizationGuardActive => _virtualizationGuardDepth > 0;
