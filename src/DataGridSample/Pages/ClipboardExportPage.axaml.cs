@@ -5,15 +5,11 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Input;
 
 namespace DataGridSample.Pages;
 
 public partial class ClipboardExportPage : UserControl
 {
-    private static readonly DataFormat<string> SampleJsonFormat = DataFormat.CreateStringPlatformFormat("application/vnd.avalonia.datagrid.sample+json");
-    private readonly JsonClipboardExporter _jsonExporter = new(SampleJsonFormat);
-
     public ClipboardExportPage()
     {
         InitializeComponent();
@@ -49,7 +45,7 @@ public partial class ClipboardExportPage : UserControl
 
     private void CopyFormat(DataGridClipboardExportFormat format)
     {
-        ItemsGrid.CopySelectionToClipboard(format, ItemsGrid.ClipboardExporter);
+        ItemsGrid.CopySelectionToClipboard(format);
     }
 
     private void UpdateExportSettings(object? sender, RoutedEventArgs? e)
@@ -67,8 +63,6 @@ public partial class ClipboardExportPage : UserControl
         };
 
         ItemsGrid.ClipboardExportFormats = formats;
-        var useCustomExporter = CustomExporterCheckBox.IsChecked == true;
-        ItemsGrid.ClipboardExporter = useCustomExporter ? _jsonExporter : null;
     }
 
     private DataGridClipboardExportFormat SelectActiveFormat()

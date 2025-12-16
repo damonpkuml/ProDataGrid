@@ -13,7 +13,7 @@
                 Grid.ColumnSpan="2"
                 Spacing="4">
       <TextBlock Classes="h2">Clipboard export formats</TextBlock>
-      <TextBlock Text="Choose the format ProDataGrid publishes when you press Ctrl+C. Enable HTML for a clipboard-friendly table (CF_HTML), or attach a custom exporter that adds a JSON payload alongside the built-in text."
+      <TextBlock Text="Choose the format ProDataGrid publishes when you press Ctrl+C. Enable HTML for a clipboard-friendly table (CF_HTML) or pick another built-in format to export alongside text."
                  TextWrapping="Wrap" />
     </StackPanel>
 
@@ -62,35 +62,6 @@
                          Content="JSON (application/json)"
                          Checked="UpdateExportSettings" />
           </StackPanel>
-        </StackPanel>
-      </Border>
-
-      <Border BorderBrush="#d9e2ef"
-              Background="#ffffff"
-              CornerRadius="8"
-              Padding="12">
-        <StackPanel Spacing="6">
-          <TextBlock Text="Custom exporter"
-                     FontWeight="SemiBold" />
-          <TextBlock Text="The sample exporter adds a structured JSON payload (application/vnd.avalonia.datagrid.sample+json) including meta, columns, and cell values, while still emitting plain text. Use this as a starting point for bespoke clipboard payloads (CSV variants, binary app formats, etc.)."
-                     TextWrapping="Wrap"
-                     Opacity="0.86" />
-          <CheckBox x:Name="CustomExporterCheckBox"
-                    Content="Add sample JSON format via custom exporter (in addition to the built-in format)"
-                    Checked="UpdateExportSettings"
-                    Unchecked="UpdateExportSettings" />
-          <Border Background="#f6f8fb"
-                  BorderBrush="#d9e2ef"
-                  CornerRadius="4"
-                  Padding="8">
-            <StackPanel Spacing="2">
-              <TextBlock Text="Tip"
-                         FontWeight="SemiBold" />
-              <TextBlock Text="Select a few rows or cells, press Ctrl+C, and paste into a Markdown editor to see the plugin output."
-                         TextWrapping="Wrap"
-                         Opacity="0.86" />
-            </StackPanel>
-          </Border>
         </StackPanel>
       </Border>
 
