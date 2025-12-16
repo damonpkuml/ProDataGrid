@@ -54,6 +54,9 @@ namespace Avalonia.Controls
         internal void RecycleRow(DataGridRow row)
         {
             Debug.Assert(row != null);
+            row.RecycledDataContext = row.DataContext;
+            row.RecycledIsPlaceholder = row.IsPlaceholder;
+            _owner.NotifyRowRecycling(row);
             row.DetachFromDataGrid(true);
             HideElement(row);
             PushToRecyclePool(_recycledRows, row);
@@ -126,14 +129,13 @@ namespace Avalonia.Controls
                 switch (element)
                 {
                     case DataGridRow row:
-                        HideElement(row);
                         if (row.IsRecyclable)
                         {
-                            row.DetachFromDataGrid(true);
-                            PushToRecyclePool(_recycledRows, row);
+                            RecycleRow(row);
                         }
                         else
                         {
+                            HideElement(row);
                             row.Clip = new RectangleGeometry();
                         }
                         break;

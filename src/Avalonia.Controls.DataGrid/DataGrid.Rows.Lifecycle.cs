@@ -366,7 +366,10 @@ namespace Avalonia.Controls
                         {
                             OnUnloadingRow(new DataGridRowEventArgs(row));
                         }
-                        row.DetachFromDataGrid(recycle && row.IsRecyclable /*recycle*/);
+                        if (!(recycle && row.IsRecyclable))
+                        {
+                            row.DetachFromDataGrid(recycle && row.IsRecyclable /*recycle*/);
+                        }
                     }
                     else if (element is DataGridRowGroupHeader groupHeader)
                     {
@@ -421,7 +424,7 @@ namespace Avalonia.Controls
             }
             else
             {
-                //
+                ClearContainerForItemOverride(dataGridRow, dataGridRow.DataContext);
                 _rowsPresenter.Children.Remove(dataGridRow);
                 dataGridRow.DetachFromDataGrid(false);
             }

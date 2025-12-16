@@ -393,6 +393,7 @@ namespace Avalonia.Controls.Primitives
         internal void UpdateScrollInfo(Size extent, Size viewport)
         {
             bool changed = false;
+            var oldViewport = _viewport;
 
             if (_extent != extent)
             {
@@ -416,6 +417,7 @@ namespace Avalonia.Controls.Primitives
 
             if (changed)
             {
+                _owningGrid?.OnRowsPresenterViewportChanged(oldViewport, _viewport);
                 RaiseScrollInvalidated(EventArgs.Empty);
             }
         }

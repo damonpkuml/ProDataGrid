@@ -170,6 +170,9 @@
     <TabItem Header="Styling &amp; Themes">
       <pages:StylingShowcasePage />
     </TabItem>
+    <TabItem Header="Lifecycle Hooks">
+      <pages:ContainerLifecyclePage />
+    </TabItem>
   </TabControl>
 
 </Window>

@@ -98,6 +98,13 @@ namespace Avalonia.Controls
         {
             Control recycledContent = _forceGenerateCellFromTemplate ? null : cell.Content as Control;
 
+            // A recycled row can briefly clear its DataContext while being re-templated; avoid invoking user templates with null.
+            if (dataItem is null)
+            {
+                _forceGenerateCellFromTemplate = false;
+                return recycledContent ?? new Control();
+            }
+
             if (dataItem == DataGridCollectionView.NewItemPlaceholder)
             {
                 _forceGenerateCellFromTemplate = false;

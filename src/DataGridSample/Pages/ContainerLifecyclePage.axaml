@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:DataGridSample.Pages"
+             xmlns:controls="clr-namespace:DataGridSample.Pages"
+             x:Class="DataGridSample.Pages.ContainerLifecyclePage">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto,Auto"
+        ColumnDefinitions="*">
+    <StackPanel Grid.Row="0" Spacing="4">
+      <TextBlock Classes="h2">Row/container lifecycle hooks</TextBlock>
+      <TextBlock Text="Demonstrates PrepareContainerForItemOverride / ClearContainerForItemOverride / OnCleanUpVirtualizedItem on a custom DataGrid subclass."
+                 TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+      <Button Content="Add item" Click="OnAddItem"/>
+      <Button Content="Remove first" Click="OnRemoveFirst"/>
+      <Button Content="Scroll to bottom" Click="OnScrollBottom"/>
+      <Button Content="Scroll to top" Click="OnScrollTop"/>
+      <TextBlock Text="{Binding LogSummary}" VerticalAlignment="Center"/>
+    </StackPanel>
+
+    <controls:TrackingDataGrid x:Name="LifecycleGrid"
+                               Grid.Row="2"
+                               ItemsSource="{Binding Items}"
+                               UseLogicalScrollable="True"
+                               CanUserAddRows="False"
+                               CanUserDeleteRows="False"
+                               IsReadOnly="True"
+                               AutoGenerateColumns="False"
+                               ContainerEvent="OnContainerEvent">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="60"/>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+        <DataGridTextColumn Header="City" Binding="{Binding City}" Width="*"/>
+      </DataGrid.Columns>
+    </controls:TrackingDataGrid>
+
+    <StackPanel Grid.Row="3" Margin="0,8,0,0">
+      <TextBlock Classes="h3">Recent container events</TextBlock>
+      <TextBlock Text="Newest first. Add/remove items and scroll to trigger virtualization."
+                 FontSize="12"
+                 Opacity="0.8"/>
+    </StackPanel>
+
+    <ListBox Grid.Row="4"
+             ItemsSource="{Binding Logs}"
+             Height="200"
+             MinHeight="200"
+             MaxHeight="200" />
+  </Grid>
+</UserControl>

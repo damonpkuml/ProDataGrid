@@ -72,6 +72,8 @@ namespace Avalonia.Controls
         private IDisposable _detailsContentSizeSubscription;
         private DataGridDetailsPresenter _detailsElement;
         private bool _isSelected;
+        internal object RecycledDataContext;
+        internal bool RecycledIsPlaceholder;
 
         // Locally cache whether or not details are visible so we don't run redundant storyboards
         // The Details Template that is actually applied to the Row
@@ -169,6 +171,12 @@ namespace Avalonia.Controls
                     PseudoClassesHelper.Set(PseudoClasses, ":placeholder", value);
                 }
             }
+        }
+
+        internal void ClearRecyclingState()
+        {
+            RecycledDataContext = null;
+            RecycledIsPlaceholder = false;
         }
 
         static DataGridRow()

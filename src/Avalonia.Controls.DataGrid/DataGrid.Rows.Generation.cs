@@ -30,11 +30,19 @@ namespace Avalonia.Controls
         {
             Debug.Assert(rowIndex > -1);
             DataGridRow dataGridRow = GetGeneratedRow(dataContext);
+            bool isOwnContainer = false;
+
+            if (dataGridRow == null && IsItemItsOwnContainerOverride(dataContext))
+            {
+                dataGridRow = dataContext as DataGridRow;
+                isOwnContainer = dataGridRow != null;
+            }
+
             if (dataGridRow == null)
             {
                 var recycledRow = DisplayData.GetRecycledRow();
                 dataGridRow = recycledRow ?? new DataGridRow();
-                var previousDataContext = dataGridRow.DataContext;
+                var previousDataContext = (dataGridRow.RecycledDataContext ?? dataGridRow.DataContext);
                 dataGridRow.Index = rowIndex;
                 dataGridRow.Slot = slot;
                 dataGridRow.OwningGrid = this;
@@ -45,6 +53,8 @@ namespace Avalonia.Controls
                     dataGridRow.SetValue(ThemeProperty, rowTheme, BindingPriority.Template);
                 }
                 CompleteCellsCollection(dataGridRow);
+                NotifyRowPrepared(dataGridRow, dataContext);
+                dataGridRow.ClearRecyclingState();
 
                 if (recycledRow != null &&
                     previousDataContext != dataContext &&
@@ -57,6 +67,22 @@ namespace Avalonia.Controls
                     }
                 }
 
+                OnLoadingRow(new DataGridRowEventArgs(dataGridRow));
+            }
+            else if (isOwnContainer)
+            {
+                dataGridRow.Index = rowIndex;
+                dataGridRow.Slot = slot;
+                dataGridRow.OwningGrid = this;
+                dataGridRow.DataContext = dataContext;
+                dataGridRow.IsPlaceholder = ReferenceEquals(dataGridRow.DataContext, DataGridCollectionView.NewItemPlaceholder);
+                if (RowTheme is {} rowTheme)
+                {
+                    dataGridRow.SetValue(ThemeProperty, rowTheme, BindingPriority.Template);
+                }
+                CompleteCellsCollection(dataGridRow);
+                NotifyRowPrepared(dataGridRow, dataGridRow.DataContext ?? dataContext);
+                dataGridRow.ClearRecyclingState();
                 OnLoadingRow(new DataGridRowEventArgs(dataGridRow));
             }
             return dataGridRow;

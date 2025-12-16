@@ -96,6 +96,63 @@ namespace Avalonia.Controls
         private const double DATAGRID_defaultMinColumnWidth = 20;
         private const double DATAGRID_defaultMaxColumnWidth = double.PositiveInfinity;
 
+        /// <summary>
+        /// Invoked when preparing a row container for an item.
+        /// Mirrors ItemsControl naming while using the DataGrid row pipeline.
+        /// </summary>
+        protected virtual void PrepareContainerForItemOverride(DataGridRow element, object item)
+        {
+            element.DataContext = item;
+            element.IsPlaceholder = ReferenceEquals(item, DataGridCollectionView.NewItemPlaceholder);
+            element.IsValid = true;
+            element.ClearDragDropState();
+        }
+
+        /// <summary>
+        /// Invoked when clearing a row container for reuse or removal.
+        /// </summary>
+        protected virtual void ClearContainerForItemOverride(DataGridRow element, object item)
+        {
+            element.IsSelected = false;
+            element.IsPlaceholder = false;
+            element.ClearDragDropState();
+            element.DataContext = null;
+        }
+
+        /// <summary>
+        /// Determines whether the provided item is already a DataGridRow container.
+        /// </summary>
+        protected virtual bool IsItemItsOwnContainerOverride(object item) => item is DataGridRow;
+
+        /// <summary>
+        /// Invoked when a row container is being virtualized/recycled.
+        /// </summary>
+        protected virtual void OnCleanUpVirtualizedItem(DataGridRow element)
+        {
+        }
+
+        internal void NotifyRowRecycling(DataGridRow row)
+        {
+            row.RecycledDataContext ??= row.DataContext;
+            row.RecycledIsPlaceholder = row.IsPlaceholder;
+            OnCleanUpVirtualizedItem(row);
+            ClearContainerForItemOverride(row, row.DataContext);
+        }
+
+        internal void NotifyRowPrepared(DataGridRow row, object item)
+        {
+            PrepareContainerForItemOverride(row, item);
+        }
+
+        /// <summary>
+        /// Called when the rows presenter viewport changes (virtualization hook).
+        /// </summary>
+        /// <param name="oldViewport">Previous viewport size.</param>
+        /// <param name="newViewport">New viewport size.</param>
+        protected internal virtual void OnRowsPresenterViewportChanged(Size oldViewport, Size newViewport)
+        {
+        }
+
         private INotifyCollectionChanged _topLevelGroup;
 
         private Visual _bottomRightCorner;
