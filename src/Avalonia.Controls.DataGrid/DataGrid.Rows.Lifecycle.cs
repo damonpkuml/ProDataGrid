@@ -387,7 +387,7 @@ namespace Avalonia.Controls
             }
             DisplayData.ClearElements(recycle);
 
-            if (recycle && UseLogicalScrollable && _rowsPresenter != null && !KeepRecycledContainersInVisualTree)
+            if (recycle && _rowsPresenter != null && !KeepRecycledContainersInVisualTree)
             {
                 RemoveRecycledChildrenFromVisualTree();
             }
@@ -417,7 +417,7 @@ namespace Avalonia.Controls
             if (recycleRow)
             {
                 DisplayData.RecycleRow(dataGridRow);
-                if (UseLogicalScrollable && _rowsPresenter != null && !KeepRecycledContainersInVisualTree)
+                if (_rowsPresenter != null && !KeepRecycledContainersInVisualTree)
                 {
                     _rowsPresenter.Children.Remove(dataGridRow);
                 }

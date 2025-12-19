@@ -173,7 +173,7 @@ namespace Avalonia.Controls
 
             DisplayData.ClearElements(recycle: true);
 
-            if (UseLogicalScrollable && _rowsPresenter != null && !KeepRecycledContainersInVisualTree)
+            if (_rowsPresenter != null && !KeepRecycledContainersInVisualTree)
             {
                 RemoveRecycledChildrenFromVisualTree();
             }
