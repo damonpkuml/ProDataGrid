@@ -284,6 +284,8 @@
         <Setter Property="Background" Value="{DynamicResource DataGridCellBackgroundBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="FontSize" Value="{DynamicResource DataGridCellFontSize}" />
+        <Setter Property="MinHeight" Value="{DynamicResource DataGridCellMinHeight}" />
         <Setter Property="Template">
           <ControlTemplate>
             <Border x:Name="CellBorder"
@@ -361,6 +363,8 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="SeparatorBrush" Value="{DynamicResource DataGridGridLinesBrush}" />
         <Setter Property="Padding" Value="{DynamicResource DataGridColumnHeaderPadding}" />
+        <Setter Property="FontSize" Value="{DynamicResource DataGridColumnHeaderFontSize}" />
+        <Setter Property="MinHeight" Value="{DynamicResource DataGridColumnHeaderMinHeight}" />
         <Setter Property="FilterTheme" Value="{StaticResource DataGridFilterButtonTheme}" />
         <Setter Property="Template">
           <ControlTemplate>
