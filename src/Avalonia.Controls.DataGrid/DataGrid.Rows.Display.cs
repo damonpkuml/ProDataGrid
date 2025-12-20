@@ -285,6 +285,11 @@ namespace Avalonia.Controls
                 HideRecycledElement(groupHeader);
                 DisplayData.RecycleGroupHeader(groupHeader);
             }
+            else if (element is DataGridRowGroupFooter groupFooter)
+            {
+                HideRecycledElement(groupFooter);
+                DisplayData.RecycleGroupFooter(groupFooter);
+            }
             else if (_rowsPresenter != null)
             {
                 _rowsPresenter.Children.Remove(element);

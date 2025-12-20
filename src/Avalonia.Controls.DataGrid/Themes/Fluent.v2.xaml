@@ -1,6 +1,8 @@
 <!-- Copyright (c) Wiesław Šoltés. All rights reserved. -->
 <!-- Licensed under the MIT license. See LICENSE file in the project root for details. -->
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:Avalonia.Controls">
   <!-- Fluent v2 keeps the v1 styling and only swaps the DataGrid template to the ScrollViewer-based version.
        All colors, column/cell themes, and resources continue to come from Fluent.xaml. -->
   <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
@@ -17,7 +19,7 @@
                   BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="{TemplateBinding BorderThickness}"
                   CornerRadius="{TemplateBinding CornerRadius}">
-            <Grid RowDefinitions="Auto,*"
+            <Grid RowDefinitions="Auto,Auto,*,Auto"
                   ClipToBounds="True">
               
               <!-- Column Headers Row (stays fixed at top) -->
@@ -36,7 +38,7 @@
 
               <!-- ScrollViewer wrapping the RowsPresenter -->
               <ScrollViewer Name="PART_ScrollViewer"
-                            Grid.Row="1"
+                            Grid.Row="2"
                             HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
                             VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}"
                             IsScrollInertiaEnabled="{TemplateBinding IsScrollInertiaEnabled}"
@@ -44,9 +46,14 @@
                 <DataGridRowsPresenter Name="PART_RowsPresenter" />
               </ScrollViewer>
 
+              <!-- Total Summary Row (fixed at bottom) -->
+              <controls:DataGridSummaryRow Name="PART_TotalSummaryRow"
+                                  Grid.Row="3"
+                                  IsVisible="False" />
+
               <!-- Disabled overlay -->
               <Border x:Name="PART_DisabledVisualElement"
-                      Grid.Row="0" Grid.RowSpan="2"
+                      Grid.Row="0" Grid.RowSpan="4"
                       IsHitTestVisible="False"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
@@ -57,6 +64,10 @@
           </Border>
         </ControlTemplate>
       </Setter>
+
+      <Style Selector="^:summary-top /template/ controls|DataGridSummaryRow#PART_TotalSummaryRow">
+        <Setter Property="Grid.Row" Value="1" />
+      </Style>
 
       <Style Selector="^:empty-columns">
         <Style Selector="^ /template/ DataGridColumnHeader#PART_TopLeftCornerHeader">

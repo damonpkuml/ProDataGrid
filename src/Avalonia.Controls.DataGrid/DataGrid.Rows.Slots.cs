@@ -43,25 +43,41 @@ namespace Avalonia.Controls
         {
             SlotCount = 0;
             VisibleSlotCount = 0;
-            IEnumerator<int> groupSlots = null;
-            int nextGroupSlot = -1;
+            IEnumerator<int> headerSlots = null;
+            IEnumerator<int> footerSlots = null;
+            int nextHeaderSlot = -1;
+            int nextFooterSlot = -1;
             if (RowGroupHeadersTable.RangeCount > 0)
             {
-                groupSlots = RowGroupHeadersTable.GetIndexes().GetEnumerator();
-                if (groupSlots != null && groupSlots.MoveNext())
+                headerSlots = RowGroupHeadersTable.GetIndexes().GetEnumerator();
+                if (headerSlots != null && headerSlots.MoveNext())
                 {
-                    nextGroupSlot = groupSlots.Current;
+                    nextHeaderSlot = headerSlots.Current;
+                }
+            }
+            if (RowGroupFootersTable.RangeCount > 0)
+            {
+                footerSlots = RowGroupFootersTable.GetIndexes().GetEnumerator();
+                if (footerSlots != null && footerSlots.MoveNext())
+                {
+                    nextFooterSlot = footerSlots.Current;
                 }
             }
             int slot = 0;
             int addedRows = 0;
             while (slot < totalSlots && AvailableSlotElementRoom > 0)
             {
-                if (slot == nextGroupSlot)
+                if (slot == nextHeaderSlot)
                 {
                     DataGridRowGroupInfo groupRowInfo = RowGroupHeadersTable.GetValueAt(slot);
                     AddSlotElement(slot, GenerateRowGroupHeader(slot, groupRowInfo));
-                    nextGroupSlot = groupSlots.MoveNext() ? groupSlots.Current : -1;
+                    nextHeaderSlot = headerSlots.MoveNext() ? headerSlots.Current : -1;
+                }
+                else if (slot == nextFooterSlot)
+                {
+                    DataGridRowGroupInfo groupRowInfo = RowGroupFootersTable.GetValueAt(slot);
+                    AddSlotElement(slot, GenerateRowGroupFooter(slot, groupRowInfo));
+                    nextFooterSlot = footerSlots.MoveNext() ? footerSlots.Current : -1;
                 }
                 else
                 {
@@ -109,14 +125,46 @@ namespace Avalonia.Controls
 
         internal int RowIndexFromSlot(int slot)
         {
-            return slot - RowGroupHeadersTable.GetIndexCount(0, slot);
+            return slot - GetGroupSlotCountBefore(slot);
         }
 
 
 
         internal int SlotFromRowIndex(int rowIndex)
         {
-            return rowIndex + RowGroupHeadersTable.GetIndexCountBeforeGap(0, rowIndex);
+            return rowIndex + GetGroupSlotCountBeforeGap(rowIndex);
+        }
+
+        internal bool IsGroupHeaderSlot(int slot)
+        {
+            return RowGroupHeadersTable.Contains(slot);
+        }
+
+        internal bool IsGroupFooterSlot(int slot)
+        {
+            return RowGroupFootersTable.Contains(slot);
+        }
+
+        internal bool IsGroupSlot(int slot)
+        {
+            return IsGroupHeaderSlot(slot) || IsGroupFooterSlot(slot);
+        }
+
+        internal DataGridRowGroupInfo GetGroupInfoForSlot(int slot)
+        {
+            return RowGroupHeadersTable.GetValueAt(slot) ?? RowGroupFootersTable.GetValueAt(slot);
+        }
+
+        private int GetGroupSlotCountBefore(int slot)
+        {
+            return RowGroupHeadersTable.GetIndexCount(0, slot)
+                + RowGroupFootersTable.GetIndexCount(0, slot);
+        }
+
+        private int GetGroupSlotCountBeforeGap(int rowIndex)
+        {
+            return RowGroupHeadersTable.GetIndexCountBeforeGap(0, rowIndex)
+                + RowGroupFootersTable.GetIndexCountBeforeGap(0, rowIndex);
         }
 
 

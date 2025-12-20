@@ -291,6 +291,15 @@ namespace Avalonia.Controls
         internal void OnColumnCollectionChanged_PreNotification(bool columnsGrew)
         {
             // dataGridColumn==null means the collection was refreshed.
+            if (_totalSummaryRow != null && _totalSummaryRow.CellsPresenter != null && _totalSummaryRow.Cells.Count != ColumnsItemsInternal.Count)
+            {
+                if (ColumnsItemsInternal.Count == 0)
+                {
+                    _summaryService?.InvalidateAll();
+                }
+
+                _totalSummaryRow.EnsureCells();
+            }
 
             if (columnsGrew && _autoGeneratingColumnOperationCount == 0 && ColumnsItemsInternal.Count == 1)
             {
@@ -398,6 +407,11 @@ namespace Avalonia.Controls
                 {
                     PopulateCellContent(false /*isCellEdited*/, column, row, row.Cells[column.Index]);
                 }
+            }
+
+            if (column.HasSummaries)
+            {
+                OnColumnSummariesChanged(column);
             }
         }
 
@@ -542,6 +556,7 @@ namespace Avalonia.Controls
             if (updatedColumn.IsVisible)
             {
                 EnsureHorizontalLayout();
+                UpdateSummaryRowLayout();
             }
         }
 
@@ -602,6 +617,10 @@ namespace Avalonia.Controls
                     }
                 }
             }
+
+            // Update summary row
+            _totalSummaryRow?.OnColumnAdded(insertedColumn, insertedColumn.Index);
+            OnGroupSummaryColumnAdded(insertedColumn, insertedColumn.Index);
 
             if (insertedColumn.IsVisible)
             {
@@ -682,6 +701,12 @@ namespace Avalonia.Controls
                 }
                 _rowsPresenter.InvalidateArrange();
             }
+
+            _summaryService?.InvalidateColumn(removedColumn);
+
+            // Update summary row
+            _totalSummaryRow?.OnColumnRemoved(removedColumn);
+            OnGroupSummaryColumnRemoved(removedColumn);
 
             RemoveDisplayedColumnHeader(removedColumn);
         }

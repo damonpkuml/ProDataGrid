@@ -151,6 +151,7 @@ namespace Avalonia.Controls
 
                 InvalidateColumnHeadersMeasure();
                 InvalidateRowsMeasure(true);
+                UpdateSummaryRowLayout();
                 return true;
             }
             return false;

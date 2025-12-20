@@ -71,6 +71,7 @@ namespace Avalonia.Controls
         private const string DATAGRID_elementTopLeftCornerHeaderName = "PART_TopLeftCornerHeader";
         private const string DATAGRID_elementTopRightCornerHeaderName = "PART_TopRightCornerHeader";
         private const string DATAGRID_elementBottomRightCornerHeaderName = "PART_BottomRightCorner";
+        private const string DATAGRID_elementTotalSummaryRowName = "PART_TotalSummaryRow";
         internal const bool DATAGRID_defaultCanUserReorderColumns = true;
         internal const bool DATAGRID_defaultCanUserResizeColumns = true;
         internal const bool DATAGRID_defaultCanUserSortColumns = true;
@@ -375,6 +376,7 @@ namespace Avalonia.Controls
             _selectedItems.CollectionChanged += OnSelectedItemsCollectionChanged;
             _selectedCellsView.CollectionChanged += OnSelectedCellsCollectionChanged;
             RowGroupHeadersTable = new IndexToValueTable<DataGridRowGroupInfo>();
+            RowGroupFootersTable = new IndexToValueTable<DataGridRowGroupInfo>();
             _bindingValidationErrors = new List<Exception>();
 
             DisplayData = new DataGridDisplayData(this);
@@ -404,6 +406,9 @@ namespace Avalonia.Controls
 
             RowGroupHeaderHeightEstimate = DATAGRID_defaultRowHeight;
 
+            // Initialize summary service
+            InitializeSummaryService();
+
             UpdatePseudoClasses();
         }
 
@@ -426,6 +431,8 @@ namespace Avalonia.Controls
             PseudoClassesHelper.Set(PseudoClasses, ":empty-rows", !DataConnection.Any());
             PseudoClassesHelper.Set(PseudoClasses, ":row-drag-enabled", CanUserReorderRows);
             PseudoClassesHelper.Set(PseudoClasses, ":row-drag-handle-visible", CanUserReorderRows && RowDragHandleVisible);
+            PseudoClassesHelper.Set(PseudoClasses, ":summary-top", _totalSummaryPosition == DataGridSummaryRowPosition.Top);
+            PseudoClassesHelper.Set(PseudoClasses, ":summary-bottom", _totalSummaryPosition == DataGridSummaryRowPosition.Bottom);
         }
 
         private void OnCanUserAddRowsChanged(AvaloniaPropertyChangedEventArgs e)
@@ -691,6 +698,12 @@ namespace Avalonia.Controls
             private set;
         }
 
+        internal IndexToValueTable<DataGridRowGroupInfo> RowGroupFootersTable
+        {
+            get;
+            private set;
+        }
+
         internal bool LoadingOrUnloadingRow
         {
             get;
@@ -716,11 +729,7 @@ namespace Avalonia.Controls
                     DataGridRow oldMouseOverRow = null;
                     if (_mouseOverRowIndex.HasValue)
                     {
-                        int oldSlot = SlotFromRowIndex(_mouseOverRowIndex.Value);
-                        if (IsSlotVisible(oldSlot))
-                        {
-                            oldMouseOverRow = DisplayData.GetDisplayedElement(oldSlot) as DataGridRow;
-                        }
+                        oldMouseOverRow = GetDisplayedRowForIndex(_mouseOverRowIndex.Value);
                     }
 
                     _mouseOverRowIndex = value;
@@ -733,19 +742,38 @@ namespace Avalonia.Controls
 
                     if (_mouseOverRowIndex.HasValue)
                     {
-                        int newSlot = SlotFromRowIndex(_mouseOverRowIndex.Value);
-                        if (IsSlotVisible(newSlot))
-                        {
-                            DataGridRow newMouseOverRow = DisplayData.GetDisplayedElement(newSlot) as DataGridRow;
-                            Debug.Assert(newMouseOverRow != null);
-                            if (newMouseOverRow != null)
-                            {
-                                newMouseOverRow.ApplyState();
-                            }
-                        }
+                        DataGridRow newMouseOverRow = GetDisplayedRowForIndex(_mouseOverRowIndex.Value);
+                        newMouseOverRow?.ApplyState();
                     }
                 }
             }
+        }
+
+        private DataGridRow GetDisplayedRowForIndex(int rowIndex)
+        {
+            if (rowIndex < 0)
+            {
+                return null;
+            }
+
+            int slot = SlotFromRowIndex(rowIndex);
+            if (IsSlotVisible(slot))
+            {
+                if (DisplayData.GetDisplayedElement(slot) is DataGridRow row)
+                {
+                    return row;
+                }
+            }
+
+            foreach (Control element in DisplayData.GetScrollingRows())
+            {
+                if (element is DataGridRow row && row.Index == rowIndex)
+                {
+                    return row;
+                }
+            }
+
+            return null;
         }
 
         internal double NegVerticalOffset
@@ -1083,7 +1111,7 @@ namespace Avalonia.Controls
 
         private bool IsSlotOutOfSelectionBounds(int slot)
         {
-            if (RowGroupHeadersTable.Contains(slot))
+            if (IsGroupSlot(slot))
             {
                 Debug.Assert(slot >= 0 && slot < SlotCount);
                 return false;
@@ -1532,6 +1560,7 @@ namespace Avalonia.Controls
                 RestoreSelectionFromSnapshot();
                 RefreshSelectionFromModel();
                 RefreshColumnSortStates();
+                OnSortingChangedForSummaries();
 
                 // Some custom adapters (e.g., DynamicData) push sort changes upstream and the
                 // resulting collection mutations can arrive asynchronously after this callback.
@@ -1562,6 +1591,7 @@ namespace Avalonia.Controls
                 RefreshSelectionFromModel();
                 RefreshColumnSortStates();
                 RefreshColumnFilterStates();
+                OnFilterChangedForSummaries();
             }
         }
 
@@ -1591,6 +1621,8 @@ namespace Avalonia.Controls
                 RefreshRowsAndColumns(clearRows: false);
                 RefreshSelectionFromModel();
             }
+
+            OnCollectionChangedForSummaries(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         private void EnsureHierarchicalItemsSource()
@@ -1851,7 +1883,9 @@ namespace Avalonia.Controls
                 return;
             }
 
-            bool ownsView = oldModel?.OwnsViewFilter ?? newModel.OwnsViewFilter;
+            bool ownsView = model != null
+                ? newModel.OwnsViewFilter
+                : oldModel?.OwnsViewFilter ?? newModel.OwnsViewFilter;
 
             _filteringAdapter?.Dispose();
             _filteringAdapter = null;
@@ -2208,7 +2242,7 @@ namespace Avalonia.Controls
         /// </summary>
         protected virtual int SelectionIndexFromSlot(int slot)
         {
-            if (RowGroupHeadersTable.Contains(slot))
+            if (IsGroupSlot(slot))
             {
                 return -1;
             }

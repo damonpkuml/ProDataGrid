@@ -15,6 +15,7 @@ namespace Avalonia.Controls
     {
         private readonly Stack<DataGridRow> _recycledRows;
         private readonly Stack<DataGridRowGroupHeader> _recycledGroupHeaders;
+        private readonly Stack<DataGridRowGroupFooter> _recycledGroupFooters;
         private readonly List<Control> _scrollingElements;
         private readonly DataGrid _owner;
         private int _headScrollingElements;
@@ -25,6 +26,7 @@ namespace Avalonia.Controls
             _scrollingElements = new List<Control>();
             _recycledRows = new Stack<DataGridRow>();
             _recycledGroupHeaders = new Stack<DataGridRowGroupHeader>();
+            _recycledGroupFooters = new Stack<DataGridRowGroupFooter>();
 
             ResetSlotIndexes();
             FirstDisplayedScrollingCol = -1;
@@ -67,7 +69,7 @@ namespace Avalonia.Controls
             return PopFromRecyclePool(_recycledRows, RestoreElementVisibility);
         }
 
-        internal void TrimRecycledPools(DataGridRowsPresenter owner, int maxRecycledRows, int maxRecycledGroupHeaders)
+        internal void TrimRecycledPools(DataGridRowsPresenter owner, int maxRecycledRows, int maxRecycledGroupHeaders, int maxRecycledGroupFooters)
         {
             while (_recycledRows.Count > maxRecycledRows)
             {
@@ -81,6 +83,13 @@ namespace Avalonia.Controls
                 var header = _recycledGroupHeaders.Pop();
                 owner.UnregisterAnchorCandidate(header);
                 owner.Children.Remove(header);
+            }
+
+            while (_recycledGroupFooters.Count > maxRecycledGroupFooters)
+            {
+                var footer = _recycledGroupFooters.Pop();
+                owner.UnregisterAnchorCandidate(footer);
+                owner.Children.Remove(footer);
             }
         }
 
@@ -101,6 +110,19 @@ namespace Avalonia.Controls
             return PopFromRecyclePool(_recycledGroupHeaders, RestoreElementVisibility);
         }
 
+        internal void RecycleGroupFooter(DataGridRowGroupFooter groupFooter)
+        {
+            Debug.Assert(groupFooter != null);
+            groupFooter.IsRecycled = true;
+            HideElement(groupFooter);
+            PushToRecyclePool(_recycledGroupFooters, groupFooter);
+        }
+
+        internal DataGridRowGroupFooter? GetRecycledGroupFooter()
+        {
+            return PopFromRecyclePool(_recycledGroupFooters, RestoreElementVisibility);
+        }
+
         #endregion
 
         #region Element Management
@@ -117,6 +139,7 @@ namespace Avalonia.Controls
             {
                 _recycledRows.Clear();
                 _recycledGroupHeaders.Clear();
+                _recycledGroupFooters.Clear();
             }
             
             _scrollingElements.Clear();
@@ -144,6 +167,11 @@ namespace Avalonia.Controls
                         HideElement(groupHeader);
                         groupHeader.IsRecycled = true;
                         PushToRecyclePool(_recycledGroupHeaders, groupHeader);
+                        break;
+                    case DataGridRowGroupFooter groupFooter:
+                        HideElement(groupFooter);
+                        groupFooter.IsRecycled = true;
+                        PushToRecyclePool(_recycledGroupFooters, groupFooter);
                         break;
                 }
             }

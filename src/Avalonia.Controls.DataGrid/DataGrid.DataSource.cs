@@ -171,6 +171,7 @@ namespace Avalonia.Controls
                 InvalidateMeasure();
 
                 UpdatePseudoClasses();
+                OnDataSourceChangedForSummaries();
             }
         }
 
@@ -480,9 +481,10 @@ namespace Avalonia.Controls
         // If the DataContext is an item, rowIndex is set to the index of the item within the collection
         internal object ItemFromSlot(int slot, ref int rowIndex)
         {
-            if (RowGroupHeadersTable.Contains(slot))
+            if (IsGroupSlot(slot))
             {
-                return RowGroupHeadersTable.GetValueAt(slot)?.CollectionViewGroup;
+                var info = RowGroupHeadersTable.GetValueAt(slot) ?? RowGroupFootersTable.GetValueAt(slot);
+                return info?.CollectionViewGroup;
             }
             else
             {

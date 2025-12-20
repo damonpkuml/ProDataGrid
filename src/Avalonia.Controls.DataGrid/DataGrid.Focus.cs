@@ -161,7 +161,7 @@ namespace Avalonia.Controls
                 if (DataConnection.CollectionView.IsCurrentBeforeFirst ||
                     DataConnection.CollectionView.IsCurrentAfterLast)
                 {
-                    slot = RowGroupHeadersTable.Contains(0) ? 0 : -1;
+                    slot = IsGroupSlot(0) ? 0 : -1;
                 }
                 else
                 {

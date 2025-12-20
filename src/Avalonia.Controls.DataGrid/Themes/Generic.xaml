@@ -677,7 +677,7 @@
                                 Background="{TemplateBinding Background}"
                                 MinHeight="{TemplateBinding MinHeight}"
                                 ColumnDefinitions="Auto,Auto,Auto,Auto,*"
-                                RowDefinitions="*,Auto">
+                                RowDefinitions="*,Auto,Auto">
 
               <Rectangle Name="PART_IndentSpacer"
                          Grid.Column="1" />
@@ -686,6 +686,7 @@
                             Width="12"
                             Height="12"
                             Margin="{DynamicResource DataGridRowGroupHeaderExpanderMargin}"
+                            VerticalAlignment="{TemplateBinding ContentVerticalAlignment}"
                             Theme="{StaticResource DataGridRowGroupExpanderButtonTheme}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
@@ -696,7 +697,7 @@
 
               <StackPanel Grid.Column="3"
                           Orientation="Horizontal"
-                          VerticalAlignment="Center"
+                          VerticalAlignment="{TemplateBinding ContentVerticalAlignment}"
                           Margin="{DynamicResource DataGridRowGroupHeaderContentMargin}">
                 <TextBlock Name="PART_PropertyNameElement"
                            Margin="4,0,0,0"
@@ -740,14 +741,80 @@
               </Grid>
 
               <DataGridRowHeader Name="PART_RowHeader"
-                                 Grid.RowSpan="2"
+                                 Grid.RowSpan="3"
                                  DataGridFrozenGrid.IsFrozen="True" />
 
+              <controls:DataGridSummaryRow Name="PART_SummaryRow"
+                                           Grid.Row="1"
+                                           Grid.ColumnSpan="5"
+                                           IsVisible="False" />
+
               <Rectangle x:Name="PART_BottomGridLine"
-                         Grid.Row="1"
+                         Grid.Row="2"
                          Grid.ColumnSpan="5"
                          Height="1" />
             </DataGridFrozenGrid>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- DataGridSummaryRow -->
+      <ControlTheme x:Key="{x:Type controls:DataGridSummaryRow}" TargetType="controls:DataGridSummaryRow">
+        <Setter Property="Background" Value="{DynamicResource DataGridSummaryRowBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource DataGridSummaryRowForegroundBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="MinHeight" Value="{DynamicResource DataGridSummaryRowMinHeight}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{DynamicResource DataGridGridLinesBrush}"
+                    BorderThickness="0,1,0,0">
+              <controls:DataGridSummaryCellsPresenter Name="PART_CellsPresenter" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:total">
+          <Setter Property="Background" Value="{DynamicResource DataGridTotalSummaryRowBackgroundBrush}" />
+        </Style>
+        <Style Selector="^:group">
+          <Setter Property="Background" Value="{DynamicResource DataGridGroupSummaryRowBackgroundBrush}" />
+        </Style>
+      </ControlTheme>
+
+      <!-- DataGridSummaryCell -->
+      <ControlTheme x:Key="{x:Type controls:DataGridSummaryCell}" TargetType="controls:DataGridSummaryCell">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource DataGridSummaryRowForegroundBrush}" />
+        <Setter Property="Padding" Value="{DynamicResource DataGridCellTextBlockMargin}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}"
+                    BorderBrush="{DynamicResource DataGridGridLinesBrush}"
+                    BorderThickness="0,0,1,0"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+          </ControlTemplate>
+        </Setter>
+      </ControlTheme>
+
+      <!-- DataGridRowGroupFooter -->
+      <ControlTheme x:Key="{x:Type controls:DataGridRowGroupFooter}" TargetType="controls:DataGridRowGroupFooter">
+        <Setter Property="Background" Value="{DynamicResource DataGridGroupSummaryRowBackgroundBrush}" />
+        <Setter Property="MinHeight" Value="{DynamicResource DataGridSummaryRowMinHeight}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Name="PART_Root"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{DynamicResource DataGridGridLinesBrush}"
+                    BorderThickness="0,0,0,1">
+              <controls:DataGridSummaryRow Name="PART_SummaryRow" />
+            </Border>
           </ControlTemplate>
         </Setter>
       </ControlTheme>
@@ -780,7 +847,7 @@
                     BorderThickness="{TemplateBinding BorderThickness}"
                     CornerRadius="{TemplateBinding CornerRadius}">
               <Grid ColumnDefinitions="Auto,*,Auto"
-                    RowDefinitions="Auto,*,Auto,Auto"
+                    RowDefinitions="Auto,Auto,*,Auto,Auto"
                     ClipToBounds="True">
                 <DataGridColumnHeader Name="PART_TopLeftCornerHeader"
                                       Theme="{StaticResource DataGridTopLeftColumnHeader}" />
@@ -794,7 +861,7 @@
                            Fill="{DynamicResource DataGridGridLinesBrush}" />
 
                 <DataGridRowsPresenter Name="PART_RowsPresenter"
-                                       Grid.Row="1"
+                                       Grid.Row="2"
                                        Grid.Column="0"
                                        ScrollViewer.IsScrollInertiaEnabled="{TemplateBinding IsScrollInertiaEnabled}">
                   <DataGridRowsPresenter.GestureRecognizers>
@@ -803,18 +870,23 @@
                                              IsScrollInertiaEnabled="{Binding (ScrollViewer.IsScrollInertiaEnabled), ElementName=PART_RowsPresenter}" />
                   </DataGridRowsPresenter.GestureRecognizers>
                 </DataGridRowsPresenter>
+                <controls:DataGridSummaryRow Name="PART_TotalSummaryRow"
+                                              Grid.Row="4"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="2"
+                                              IsVisible="False" />
                 <Rectangle Name="PART_BottomRightCorner"
                            Fill="{DynamicResource DataGridScrollBarsSeparatorBackground}"
                            Grid.Column="2"
-                           Grid.Row="2" />
+                           Grid.Row="3" />
                 <ScrollBar Name="PART_VerticalScrollbar"
                            Orientation="Vertical"
                            Grid.Column="2"
-                           Grid.Row="1"
+                           Grid.Row="2"
                            Width="{DynamicResource ScrollBarSize}" />
 
                 <Grid Grid.Column="1"
-                      Grid.Row="2"
+                      Grid.Row="3"
                       ColumnDefinitions="Auto,*">
                   <Rectangle Name="PART_FrozenColumnScrollBarSpacer" />
                   <ScrollBar Name="PART_HorizontalScrollbar"
@@ -824,7 +896,7 @@
                 </Grid>
                 <Border x:Name="PART_DisabledVisualElement"
                         Grid.ColumnSpan="3" Grid.Column="0"
-                        Grid.Row="0" Grid.RowSpan="4"
+                        Grid.Row="0" Grid.RowSpan="5"
                         IsHitTestVisible="False"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
@@ -835,6 +907,10 @@
             </Border>
           </ControlTemplate>
         </Setter>
+
+        <Style Selector="^:summary-top /template/ controls|DataGridSummaryRow#PART_TotalSummaryRow">
+          <Setter Property="Grid.Row" Value="1" />
+        </Style>
 
         <Style Selector="^:empty-columns">
           <Style Selector="^ /template/ DataGridColumnHeader#PART_TopLeftCornerHeader">

@@ -1,0 +1,276 @@
+// Copyright (c) Wiesław Šoltés. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for details.
+
+#nullable disable
+
+using Avalonia;
+using Avalonia.Controls.Metadata;
+using Avalonia.Controls.Primitives;
+using System.Globalization;
+using System.Linq;
+
+namespace Avalonia.Controls
+{
+    /// <summary>
+    /// A cell that displays a summary value.
+    /// </summary>
+    [PseudoClasses(":sum", ":average", ":count", ":min", ":max", ":custom", ":none")]
+#if !DATAGRID_INTERNAL
+    public
+#endif
+    class DataGridSummaryCell : ContentControl
+    {
+        private DataGridColumn _column;
+        private DataGridSummaryRow _owningRow;
+        private DataGridSummaryDescription _description;
+
+        /// <summary>
+        /// Identifies the <see cref="Value"/> property.
+        /// </summary>
+        public static readonly StyledProperty<object> ValueProperty =
+            AvaloniaProperty.Register<DataGridSummaryCell, object>(nameof(Value));
+
+        /// <summary>
+        /// Identifies the <see cref="Description"/> property.
+        /// </summary>
+        public static readonly StyledProperty<DataGridSummaryDescription> DescriptionProperty =
+            AvaloniaProperty.Register<DataGridSummaryCell, DataGridSummaryDescription>(nameof(Description));
+
+        /// <summary>
+        /// Identifies the <see cref="DisplayText"/> property.
+        /// </summary>
+        public static readonly DirectProperty<DataGridSummaryCell, string> DisplayTextProperty =
+            AvaloniaProperty.RegisterDirect<DataGridSummaryCell, string>(
+                nameof(DisplayText),
+                o => o.DisplayText);
+
+        private string _displayText;
+
+        static DataGridSummaryCell()
+        {
+            ValueProperty.Changed.AddClassHandler<DataGridSummaryCell>((x, e) => x.OnValueChanged());
+            DescriptionProperty.Changed.AddClassHandler<DataGridSummaryCell>((x, e) => x.OnDescriptionChanged());
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DataGridSummaryCell"/> class.
+        /// </summary>
+        public DataGridSummaryCell()
+        {
+        }
+
+        /// <summary>
+        /// Gets or sets the owning column.
+        /// </summary>
+        public DataGridColumn Column
+        {
+            get => _column;
+            internal set
+            {
+                if (_column != null)
+                {
+                    _column.PropertyChanged -= OnColumnPropertyChanged;
+                }
+
+                _column = value;
+
+                if (_column != null)
+                {
+                    _column.PropertyChanged += OnColumnPropertyChanged;
+                }
+
+                ApplyColumnTheme();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the owning summary row.
+        /// </summary>
+        internal DataGridSummaryRow OwningRow
+        {
+            get => _owningRow;
+            set => _owningRow = value;
+        }
+
+        /// <summary>
+        /// Gets or sets the calculated summary value.
+        /// </summary>
+        public object Value
+        {
+            get => GetValue(ValueProperty);
+            set => SetValue(ValueProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the summary description.
+        /// </summary>
+        public DataGridSummaryDescription Description
+        {
+            get => GetValue(DescriptionProperty);
+            set => SetValue(DescriptionProperty, value);
+        }
+
+        /// <summary>
+        /// Gets the formatted display text.
+        /// </summary>
+        public string DisplayText
+        {
+            get => _displayText;
+            private set => SetAndRaise(DisplayTextProperty, ref _displayText, value);
+        }
+
+        private void OnValueChanged()
+        {
+            UpdateDisplayText();
+        }
+
+        private void OnDescriptionChanged()
+        {
+            if (_description != null)
+            {
+                _description.PropertyChanged -= OnDescriptionPropertyChanged;
+            }
+
+            _description = Description;
+
+            if (_description != null)
+            {
+                _description.PropertyChanged += OnDescriptionPropertyChanged;
+            }
+
+            UpdatePseudoClasses();
+            UpdateDisplayText();
+            UpdateContentTemplate();
+        }
+
+        private void OnDescriptionPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            UpdatePseudoClasses();
+            UpdateDisplayText();
+            UpdateContentTemplate();
+        }
+
+        private void OnColumnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if (e.Property == DataGridColumn.SummaryCellThemeProperty)
+            {
+                ApplyColumnTheme();
+            }
+        }
+
+        private void UpdatePseudoClasses()
+        {
+            var aggregateType = Description?.AggregateType ?? DataGridAggregateType.None;
+
+            PseudoClasses.Set(":none", aggregateType == DataGridAggregateType.None);
+            PseudoClasses.Set(":sum", aggregateType == DataGridAggregateType.Sum);
+            PseudoClasses.Set(":average", aggregateType == DataGridAggregateType.Average);
+            PseudoClasses.Set(":count", aggregateType == DataGridAggregateType.Count || aggregateType == DataGridAggregateType.CountDistinct);
+            PseudoClasses.Set(":min", aggregateType == DataGridAggregateType.Min);
+            PseudoClasses.Set(":max", aggregateType == DataGridAggregateType.Max);
+            PseudoClasses.Set(":custom", aggregateType == DataGridAggregateType.Custom);
+        }
+
+        private void UpdateDisplayText()
+        {
+            if (Description != null)
+            {
+                var culture = OwningRow?.OwningGrid?.CollectionView?.Culture ?? CultureInfo.CurrentCulture;
+                DisplayText = Description.FormatValue(Value, culture);
+            }
+            else
+            {
+                DisplayText = Value?.ToString() ?? string.Empty;
+            }
+
+            Content = ContentTemplate == null ? DisplayText : Value;
+        }
+
+        private void UpdateContentTemplate()
+        {
+            if (Description?.ContentTemplate != null)
+            {
+                ContentTemplate = Description.ContentTemplate;
+                Content = Value;
+            }
+            else
+            {
+                ContentTemplate = null;
+                Content = DisplayText;
+            }
+        }
+
+        private void ApplyColumnTheme()
+        {
+            if (Column?.SummaryCellTheme != null)
+            {
+                Theme = Column.SummaryCellTheme;
+            }
+            else
+            {
+                ClearValue(ThemeProperty);
+            }
+        }
+
+        /// <summary>
+        /// Detaches event handlers before the cell is removed.
+        /// </summary>
+        internal void Detach()
+        {
+            if (_column != null)
+            {
+                _column.PropertyChanged -= OnColumnPropertyChanged;
+            }
+
+            if (_description != null)
+            {
+                _description.PropertyChanged -= OnDescriptionPropertyChanged;
+            }
+
+            _owningRow = null;
+        }
+
+        /// <summary>
+        /// Recalculates the summary value.
+        /// </summary>
+        internal void Recalculate()
+        {
+            if (Column == null || OwningRow?.OwningGrid?.SummaryService == null)
+            {
+                Value = null;
+                Description = null;
+                return;
+            }
+
+            var scope = OwningRow.Scope;
+            var summaryService = OwningRow.OwningGrid.SummaryService;
+
+            // Prefer exact scope matches over Both to avoid shadowing.
+            var description = Column.Summaries.FirstOrDefault(d => d.Scope == scope)
+                ?? Column.Summaries.FirstOrDefault(d => d.Scope == DataGridSummaryScope.Both);
+
+            if (description == null)
+            {
+                Value = null;
+                Description = null;
+                return;
+            }
+
+            Description = description;
+
+            // Get the calculated value
+            if (scope == DataGridSummaryScope.Total || scope == DataGridSummaryScope.Both)
+            {
+                Value = summaryService.GetTotalSummaryValue(Column, description);
+            }
+            else if (scope == DataGridSummaryScope.Group && OwningRow.Group != null)
+            {
+                Value = summaryService.GetGroupSummaryValue(Column, description, OwningRow.Group);
+            }
+            else
+            {
+                Value = null;
+            }
+        }
+    }
+}

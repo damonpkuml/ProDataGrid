@@ -361,11 +361,11 @@ namespace Avalonia.Controls
             int collapsedSlot = _collapsedSlotsTable.GetNextIndex(-1);
             while (collapsedSlot != -1 && collapsedSlot < slot)
             {
-                var rowGroupInfo = RowGroupHeadersTable.GetValueAt(collapsedSlot);
-                bool isHeader = rowGroupInfo != null;
-                int level = isHeader ? rowGroupInfo.Level : 0;
+                var rowGroupInfo = GetGroupInfoForSlot(collapsedSlot);
+                bool isGroupSlot = rowGroupInfo != null;
+                int level = isGroupSlot ? rowGroupInfo.Level : 0;
 
-                offset -= estimator.GetEstimatedHeight(collapsedSlot, isHeader, level);
+                offset -= estimator.GetEstimatedHeight(collapsedSlot, isGroupSlot, level);
                 collapsedSlot = _collapsedSlotsTable.GetNextIndex(collapsedSlot);
             }
 

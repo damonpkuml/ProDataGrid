@@ -89,6 +89,9 @@ namespace Avalonia.Controls
             _topRightCornerHeader = e.NameScope.Find<ContentControl>(DATAGRID_elementTopRightCornerHeaderName);
             _bottomRightCorner = e.NameScope.Find<Visual>(DATAGRID_elementBottomRightCornerHeaderName);
 
+            // Setup total summary row from template
+            SetupTotalSummaryRow(e.NameScope);
+
             TryExecutePendingAutoScroll();
 
             // Ensure row drag/drop wiring is active even if the property was set while handlers were suspended.
@@ -102,6 +105,11 @@ namespace Avalonia.Controls
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
+            if (_summaryService == null)
+            {
+                InitializeSummaryService();
+                OnDataSourceChangedForSummaries();
+            }
             if (DataConnection.DataSource != null && !DataConnection.EventsWired)
             {
                 DataConnection.WireEvents(DataConnection.DataSource);
@@ -120,6 +128,8 @@ namespace Avalonia.Controls
             {
                 DataConnection.UnWireEvents(DataConnection.DataSource);
             }
+
+            DisposeSummaryService();
         }
 
 

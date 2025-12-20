@@ -9,6 +9,7 @@ using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Mixins;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using System;
 using Avalonia.LogicalTree;
@@ -20,6 +21,7 @@ namespace Avalonia.Controls
     [TemplatePart(DATAGRIDROWGROUPHEADER_indentSpacer,        typeof(Control))]
     [TemplatePart(DATAGRIDROWGROUPHEADER_itemCountElement,    typeof(TextBlock))]
     [TemplatePart(DATAGRIDROWGROUPHEADER_propertyNameElement, typeof(TextBlock))]
+    [TemplatePart(DATAGRIDROWGROUPHEADER_elementSummaryRow,   typeof(DataGridSummaryRow))]
     [TemplatePart(DataGridRow.DATAGRIDROW_elementRoot,        typeof(Panel))]
     [TemplatePart(DataGridRow.DATAGRIDROW_elementRowHeader,   typeof(DataGridRowHeader))]
     [PseudoClasses(":pressed", ":current", ":expanded")]
@@ -32,6 +34,7 @@ namespace Avalonia.Controls
         private const string DATAGRIDROWGROUPHEADER_indentSpacer = "PART_IndentSpacer";
         private const string DATAGRIDROWGROUPHEADER_itemCountElement = "PART_ItemCountElement";
         private const string DATAGRIDROWGROUPHEADER_propertyNameElement = "PART_PropertyNameElement";
+        private const string DATAGRIDROWGROUPHEADER_elementSummaryRow = "PART_SummaryRow";
 
         private bool _areIsCheckedHandlersSuspended;
         private ToggleButton _expanderButton;
@@ -40,6 +43,7 @@ namespace Avalonia.Controls
         private TextBlock _itemCountElement;
         private TextBlock _propertyNameElement;
         private Panel _rootElement;
+        private DataGridSummaryRow _summaryRow;
         private double _totalIndent;
         private DataGrid _owningGrid;
 
@@ -91,6 +95,20 @@ namespace Avalonia.Controls
         {
             get { return GetValue(IsPropertyNameVisibleProperty); }
             set { SetValue(IsPropertyNameVisibleProperty, value); }
+        }
+
+        public static readonly StyledProperty<VerticalAlignment> ContentVerticalAlignmentProperty =
+            AvaloniaProperty.Register<DataGridRowGroupHeader, VerticalAlignment>(
+                nameof(ContentVerticalAlignment),
+                VerticalAlignment.Center);
+
+        /// <summary>
+        /// Gets or sets the vertical alignment for the row group header content.
+        /// </summary>
+        public VerticalAlignment ContentVerticalAlignment
+        {
+            get { return GetValue(ContentVerticalAlignmentProperty); }
+            set { SetValue(ContentVerticalAlignmentProperty, value); }
         }
 
         public static readonly StyledProperty<double> SublevelIndentProperty =
@@ -177,7 +195,16 @@ namespace Avalonia.Controls
         public DataGrid OwningGrid
         {
             get => _owningGrid;
-            internal set => SetAndRaise(OwningGridProperty, ref _owningGrid, value);
+            internal set
+            {
+                if (SetAndRaise(OwningGridProperty, ref _owningGrid, value) && _summaryRow != null)
+                {
+                    _summaryRow.OwningGrid = value;
+                    ApplySummaryRowTheme();
+                    UpdateSummaryRowOffset();
+                    UpdateSummaryRowState();
+                }
+            }
         }
 
         internal int Level
@@ -191,6 +218,8 @@ namespace Avalonia.Controls
             get;
             set;
         }
+
+        internal DataGridSummaryRow SummaryRow => _summaryRow;
 
         internal double TotalIndent
         {
@@ -237,6 +266,18 @@ namespace Avalonia.Controls
             _itemCountElement = e.NameScope.Find<TextBlock>(DATAGRIDROWGROUPHEADER_itemCountElement);
             _propertyNameElement = e.NameScope.Find<TextBlock>(DATAGRIDROWGROUPHEADER_propertyNameElement);
             UpdateTitleElements();
+
+            _summaryRow = e.NameScope.Find<DataGridSummaryRow>(DATAGRIDROWGROUPHEADER_elementSummaryRow);
+            if (_summaryRow != null)
+            {
+                _summaryRow.OwningGrid = OwningGrid;
+                _summaryRow.Scope = DataGridSummaryScope.Group;
+                _summaryRow.Group = RowGroupInfo?.CollectionViewGroup;
+                _summaryRow.Level = Level;
+                ApplySummaryRowTheme();
+                UpdateSummaryRowOffset();
+                UpdateSummaryRowState();
+            }
         }
 
         internal void ApplyHeaderStatus()
@@ -401,6 +442,9 @@ namespace Avalonia.Controls
             EnsureHeaderVisibility();
             UpdatePseudoClasses();
             ApplyHeaderStatus();
+            ApplySummaryRowTheme();
+            UpdateSummaryRowOffset();
+            UpdateSummaryRowState();
         }
 
         protected override void OnPointerEntered(PointerEventArgs e)
@@ -482,6 +526,66 @@ namespace Avalonia.Controls
 
                 _itemCountElement.Text = String.Format(formatString, RowGroupInfo.CollectionViewGroup.ItemCount);
             }
+        }
+
+        private bool ShouldShowSummaryRow =>
+            OwningGrid != null &&
+            OwningGrid.ShowGroupSummary &&
+            (OwningGrid.GroupSummaryPosition == DataGridGroupSummaryPosition.Header ||
+             OwningGrid.GroupSummaryPosition == DataGridGroupSummaryPosition.Both);
+
+        internal void ApplySummaryRowTheme()
+        {
+            if (_summaryRow == null)
+            {
+                return;
+            }
+
+            if (OwningGrid?.SummaryRowTheme != null)
+            {
+                _summaryRow.Theme = OwningGrid.SummaryRowTheme;
+            }
+            else
+            {
+                _summaryRow.ClearValue(ThemeProperty);
+            }
+        }
+
+        internal void UpdateSummaryRowState()
+        {
+            if (_summaryRow == null)
+            {
+                return;
+            }
+
+            _summaryRow.Group = RowGroupInfo?.CollectionViewGroup;
+            _summaryRow.Level = Level;
+            _summaryRow.IsVisible = ShouldShowSummaryRow;
+
+            if (_summaryRow.IsVisible)
+            {
+                if (_summaryRow.CellsPresenter != null && OwningGrid != null && _summaryRow.Cells.Count != OwningGrid.ColumnsItemsInternal.Count)
+                {
+                    _summaryRow.EnsureCells();
+                }
+
+                _summaryRow.Recalculate();
+            }
+        }
+
+        internal void UpdateSummaryRowOffset()
+        {
+            if (_summaryRow == null)
+            {
+                return;
+            }
+
+            _summaryRow.ApplyHorizontalOffset = OwningGrid?.AreRowGroupHeadersFrozen == true;
+        }
+
+        internal void UpdateSummaryRowLayout()
+        {
+            _summaryRow?.UpdateCellLayout();
         }
 
         protected override void OnDetachedFromLogicalTree(LogicalTreeAttachmentEventArgs e)

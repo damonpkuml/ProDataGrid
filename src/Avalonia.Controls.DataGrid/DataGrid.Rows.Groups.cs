@@ -204,6 +204,7 @@ namespace Avalonia.Controls
             }
 
             RowGroupHeadersTable.Clear();
+            RowGroupFootersTable.Clear();
             // Unfortunately PagedCollectionView does not allow us to preserve expanded or collapsed states for RowGroups since
             // the CollectionViewGroups are recreated when a Reset happens.  This is true in both SL and WPF
             _collapsedSlotsTable.Clear();
@@ -271,10 +272,27 @@ namespace Avalonia.Controls
                         treeCount += collectionViewGroup.Items.Count;
                     }
                 }
-                RowGroupHeadersTable.AddValue(rootSlot, new DataGridRowGroupInfo(collectionViewGroup, true, level, rootSlot, rootSlot + treeCount - 1));
+                int footerSlot = -1;
+                if (ShouldShowGroupSummaryFooters)
+                {
+                    footerSlot = rootSlot + treeCount;
+                    treeCount++;
+                }
+
+                var groupInfo = new DataGridRowGroupInfo(collectionViewGroup, true, level, rootSlot, rootSlot + treeCount - 1);
+                RowGroupHeadersTable.AddValue(rootSlot, groupInfo);
+                if (footerSlot >= 0)
+                {
+                    RowGroupFootersTable.AddValue(footerSlot, groupInfo);
+                }
             }
             return treeCount;
         }
+
+        private bool ShouldShowGroupSummaryFooters =>
+            ShowGroupSummary &&
+            (GroupSummaryPosition == DataGridGroupSummaryPosition.Footer ||
+             GroupSummaryPosition == DataGridGroupSummaryPosition.Both);
 
 
 
@@ -317,7 +335,7 @@ namespace Avalonia.Controls
                 }
                 SyncRowGroupInfoSlots();
             }
-            SlotCount = DataConnection.Count + RowGroupHeadersTable.IndexCount;
+            SlotCount = DataConnection.Count + RowGroupHeadersTable.IndexCount + RowGroupFootersTable.IndexCount;
             VisibleSlotCount = SlotCount;
         }
 
@@ -452,21 +470,31 @@ namespace Avalonia.Controls
         {
             int count = 0;
             headersHeight = 0;
-            foreach (int slot in RowGroupHeadersTable.GetIndexes(startSlot))
+            count += AccumulateGroupSlotCount(RowGroupHeadersTable, startSlot, endSlot, isVisible, ref headersHeight);
+            count += AccumulateGroupSlotCount(RowGroupFootersTable, startSlot, endSlot, isVisible, ref headersHeight);
+            return count;
+        }
+
+        private int AccumulateGroupSlotCount(IndexToValueTable<DataGridRowGroupInfo> table, int startSlot, int endSlot, bool? isVisible, ref double headersHeight)
+        {
+            int count = 0;
+            foreach (int slot in table.GetIndexes(startSlot))
             {
                 if (slot > endSlot)
                 {
                     return count;
                 }
-                DataGridRowGroupInfo rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
+
+                DataGridRowGroupInfo rowGroupInfo = table.GetValueAt(slot);
                 if (!isVisible.HasValue ||
-                (isVisible.Value && !_collapsedSlotsTable.Contains(slot)) ||
-                (!isVisible.Value && _collapsedSlotsTable.Contains(slot)))
+                    (isVisible.Value && !_collapsedSlotsTable.Contains(slot)) ||
+                    (!isVisible.Value && _collapsedSlotsTable.Contains(slot)))
                 {
                     count++;
                     headersHeight += _rowGroupHeightsByLevel[rowGroupInfo.Level];
                 }
             }
+
             return count;
         }
 
@@ -662,6 +690,22 @@ namespace Avalonia.Controls
             OnLoadingRowGroup(new DataGridRowGroupHeaderEventArgs(groupHeader));
 
             return groupHeader;
+        }
+
+        private DataGridRowGroupFooter GenerateRowGroupFooter(int slot, DataGridRowGroupInfo rowGroupInfo)
+        {
+            Debug.Assert(slot > -1);
+            Debug.Assert(rowGroupInfo != null);
+
+            DataGridRowGroupFooter groupFooter = DisplayData.GetRecycledGroupFooter() ?? new DataGridRowGroupFooter();
+            groupFooter.OwningGrid = this;
+            groupFooter.RowGroupInfo = rowGroupInfo;
+            groupFooter.Group = rowGroupInfo.CollectionViewGroup;
+            groupFooter.Level = rowGroupInfo.Level;
+            groupFooter.ApplySummaryRowTheme();
+            groupFooter.UpdateSummaryRowOffset();
+
+            return groupFooter;
         }
 
 

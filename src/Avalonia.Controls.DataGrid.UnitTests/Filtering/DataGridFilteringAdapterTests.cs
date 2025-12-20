@@ -274,6 +274,55 @@ public class DataGridFilteringAdapterTests
     }
 
     [AvaloniaFact]
+    public void FilteringModel_With_OwnsViewFilter_False_Does_Not_Clear_View_Filter()
+    {
+        var items = new ObservableCollection<Person>
+        {
+            new Person("Alpha", 1),
+            new Person("Bravo", 5)
+        };
+
+        var view = new DataGridCollectionView(items);
+        Func<object, bool> externalFilter = item => ((Person)item).Score >= 0;
+        view.Filter = externalFilter;
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150
+        };
+
+        root.SetThemeStyles();
+
+        var grid = new DataGrid
+        {
+            AutoGenerateColumns = false,
+            FilteringModel = new FilteringModel { OwnsViewFilter = false },
+            ItemsSource = view
+        };
+
+        grid.ColumnsInternal.Add(new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding(nameof(Person.Name))
+        });
+
+        root.Content = grid;
+        root.Show();
+        grid.UpdateLayout();
+
+        try
+        {
+            Assert.False(grid.FilteringModel.OwnsViewFilter);
+            Assert.Same(externalFilter, view.Filter);
+        }
+        finally
+        {
+            root.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void Selection_Preserved_When_Filtering_Model_Changes()
     {
         var items = new ObservableCollection<Person>

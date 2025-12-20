@@ -278,19 +278,17 @@ namespace Avalonia.Controls
 
         internal bool ContainsAll(int startSlot, int endSlot)
         {
-            int itemSlot = OwningGrid.RowGroupHeadersTable.GetNextGap(startSlot - 1);
-            while (itemSlot <= endSlot)
+            if (startSlot > endSlot)
             {
-                int nextRowGroupHeaderSlot = OwningGrid.RowGroupHeadersTable.GetNextIndex(itemSlot);
-                int lastItemSlot = nextRowGroupHeaderSlot == -1 ? endSlot : Math.Min(endSlot, nextRowGroupHeaderSlot - 1);
-                for (int slot = itemSlot; slot <= lastItemSlot; slot++)
+                return true;
+            }
+
+            for (int slot = startSlot; slot <= endSlot; slot++)
+            {
+                if (!OwningGrid.IsGroupSlot(slot) && !_selectedSlots.Contains(slot))
                 {
-                    if (!_selectedSlots.Contains(slot))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-                itemSlot = OwningGrid.RowGroupHeadersTable.GetNextGap(lastItemSlot);
             }
 
             return true;
@@ -432,7 +430,7 @@ namespace Avalonia.Controls
 
         internal void SelectSlot(int slot, bool select)
         {
-            if (OwningGrid.RowGroupHeadersTable.Contains(slot))
+            if (OwningGrid.IsGroupSlot(slot))
             {
                 return;
             }
@@ -454,32 +452,16 @@ namespace Avalonia.Controls
 
         internal void SelectSlots(int startSlot, int endSlot, bool select)
         {
-            int itemSlot = OwningGrid.RowGroupHeadersTable.GetNextGap(startSlot - 1);
-            int endItemSlot = OwningGrid.RowGroupHeadersTable.GetPreviousGap(endSlot + 1);
-            if (select)
+            if (startSlot > endSlot)
             {
-                while (itemSlot <= endItemSlot)
-                {
-                    int nextRowGroupHeaderSlot = OwningGrid.RowGroupHeadersTable.GetNextIndex(itemSlot);
-                    int lastItemSlot = nextRowGroupHeaderSlot == -1 ? endItemSlot : Math.Min(endItemSlot, nextRowGroupHeaderSlot - 1);
-                    for (int slot = itemSlot; slot <= lastItemSlot; slot++)
-                    {
-                        SelectSlot(slot, true);
-                    }
-                    itemSlot = OwningGrid.RowGroupHeadersTable.GetNextGap(lastItemSlot);
-                }
+                return;
             }
-            else
+
+            for (int slot = startSlot; slot <= endSlot; slot++)
             {
-                while (itemSlot <= endItemSlot)
+                if (!OwningGrid.IsGroupSlot(slot))
                 {
-                    int nextRowGroupHeaderSlot = OwningGrid.RowGroupHeadersTable.GetNextIndex(itemSlot);
-                    int lastItemSlot = nextRowGroupHeaderSlot == -1 ? endItemSlot : Math.Min(endItemSlot, nextRowGroupHeaderSlot - 1);
-                    for (int slot = itemSlot; slot <= lastItemSlot; slot++)
-                    {
-                        SelectSlot(slot, false);
-                    }
-                    itemSlot = OwningGrid.RowGroupHeadersTable.GetNextGap(lastItemSlot);
+                    SelectSlot(slot, select);
                 }
             }
         }

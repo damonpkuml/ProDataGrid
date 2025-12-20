@@ -1,0 +1,122 @@
+<!--
+  Copyright (c) Wiesław Šoltés. All rights reserved.
+  Licensed under the MIT license. See LICENSE file in the project root for details.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:filtering="clr-namespace:Avalonia.Controls.DataGridFiltering;assembly=Avalonia.Controls.DataGrid"
+             xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
+             x:Class="DataGridSample.Pages.SummariesFilteringPage"
+             x:DataType="viewModels:SummariesFilteringViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="900" d:DesignHeight="600">
+  
+  <UserControl.DataContext>
+    <viewModels:SummariesFilteringViewModel />
+  </UserControl.DataContext>
+  
+  <Grid Margin="12" RowDefinitions="Auto,Auto,*">
+    <StackPanel Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="Column Summaries - With Filtering" FontWeight="Bold" FontSize="18" />
+      <TextBlock TextWrapping="Wrap">
+        This sample demonstrates how column summaries update automatically when the data is filtered.
+        Use the filter controls below to filter the data - notice how the summary values update in real-time.
+      </TextBlock>
+    </StackPanel>
+
+    <WrapPanel Grid.Row="1" Margin="0,0,0,8">
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,16,0">
+        <TextBlock Text="Search:" VerticalAlignment="Center" />
+        <TextBox Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                 Width="200"
+                 Watermark="Customer, Product, or Order ID..." />
+      </StackPanel>
+      
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,16,0">
+        <TextBlock Text="Region:" VerticalAlignment="Center" />
+        <ComboBox ItemsSource="{Binding Regions}" SelectedItem="{Binding SelectedRegion}" Width="100" />
+      </StackPanel>
+      
+      <Button Content="Clear Filters" Command="{Binding ClearFiltersCommand}" />
+    </WrapPanel>
+
+    <DataGrid Grid.Row="2"
+              ItemsSource="{Binding View}"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              CanUserResizeColumns="True"
+              CanUserReorderColumns="True"
+              CanUserSortColumns="True"
+              GridLinesVisibility="All"
+              ShowTotalSummary="True"
+              TotalSummaryPosition="Bottom">
+      <DataGrid.FilteringModel>
+        <filtering:FilteringModel OwnsViewFilter="False" />
+      </DataGrid.FilteringModel>
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Order ID" 
+                            Binding="{Binding OrderId}" 
+                            Width="120"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Count" Title="Visible: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Customer" 
+                            Binding="{Binding Customer}" 
+                            Width="*"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="CountDistinct" Title="Unique: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Product" 
+                            Binding="{Binding Product}" 
+                            Width="*"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="CountDistinct" Title="Products: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Region" 
+                            Binding="{Binding Region}" 
+                            Width="80"
+                            x:DataType="viewModels:SampleOrder" />
+        
+        <DataGridTextColumn Header="Quantity" 
+                            Binding="{Binding Quantity}" 
+                            Width="80"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Sum" StringFormat="N0" Title="Sum: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Unit Price" 
+                            Binding="{Binding UnitPrice, StringFormat={}{0:C2}}" 
+                            Width="100"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Min" StringFormat="C2" Title="Min: " />
+            <DataGridAggregateSummaryDescription Aggregate="Max" StringFormat="C2" Title="Max: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Total" 
+                            Binding="{Binding Total, StringFormat={}{0:C2}}" 
+                            Width="140"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Sum" StringFormat="C2" Title="Total: " />
+            <DataGridAggregateSummaryDescription Aggregate="Average" StringFormat="C2" Title="Avg: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

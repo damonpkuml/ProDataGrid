@@ -38,6 +38,7 @@ namespace Avalonia.Controls
         private DataGridSelectionAction _selectionActionForCurrentChanged;
         private bool _onCollectionAddRemoveNewRowPlaceholder;
         private int? _placeholderRowIndexDuringAdd;
+        private DataGridCollectionView _groupingCollectionView;
 
         public DataGridDataConnection(DataGrid owner)
         {
@@ -707,6 +708,8 @@ namespace Avalonia.Controls
                 CollectionView.CurrentChanging -= CollectionView_CurrentChanging;
             }
 
+            UnWireGroupingEvents();
+
             EventsWired = false;
         }
 
@@ -728,7 +731,91 @@ namespace Avalonia.Controls
                 CollectionView.CurrentChanging += CollectionView_CurrentChanging;
             }
 
+            WireGroupingEvents();
+
             EventsWired = true;
+        }
+
+        private void WireGroupingEvents()
+        {
+            if (CollectionView is not DataGridCollectionView view)
+            {
+                return;
+            }
+
+            _groupingCollectionView = view;
+
+            var groupDescriptions = view.GroupDescriptions;
+            if (groupDescriptions == null)
+            {
+                return;
+            }
+
+            groupDescriptions.CollectionChanged += GroupDescriptions_CollectionChanged;
+
+            foreach (var description in groupDescriptions)
+            {
+                if (description is INotifyPropertyChanged inpc)
+                {
+                    inpc.PropertyChanged += GroupDescription_PropertyChanged;
+                }
+            }
+        }
+
+        private void UnWireGroupingEvents()
+        {
+            if (_groupingCollectionView == null)
+            {
+                return;
+            }
+
+            var groupDescriptions = _groupingCollectionView.GroupDescriptions;
+            if (groupDescriptions != null)
+            {
+                groupDescriptions.CollectionChanged -= GroupDescriptions_CollectionChanged;
+
+                foreach (var description in groupDescriptions)
+                {
+                    if (description is INotifyPropertyChanged inpc)
+                    {
+                        inpc.PropertyChanged -= GroupDescription_PropertyChanged;
+                    }
+                }
+            }
+
+            _groupingCollectionView = null;
+        }
+
+        private void GroupDescriptions_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (var item in e.OldItems)
+                {
+                    if (item is INotifyPropertyChanged inpc)
+                    {
+                        inpc.PropertyChanged -= GroupDescription_PropertyChanged;
+                    }
+                }
+            }
+
+            if (e.NewItems != null)
+            {
+                foreach (var item in e.NewItems)
+                {
+                    if (item is INotifyPropertyChanged inpc)
+                    {
+                        inpc.PropertyChanged += GroupDescription_PropertyChanged;
+                    }
+                }
+            }
+
+            _owner.OnGroupingChangedForSummaries();
+        }
+
+        private void GroupDescription_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            _owner.OnGroupingChangedForSummaries();
         }
 
         private void CollectionView_CurrentChanged(object sender, EventArgs e)
@@ -922,6 +1009,9 @@ namespace Avalonia.Controls
                 }
 
                 _owner.UpdatePseudoClasses();
+
+                // Notify the summary service about the collection change
+                _owner.OnCollectionChangedForSummaries(e);
 
                 // Ensure the visual selection state matches the restored selection after mutations
                 _owner.RefreshVisibleSelection();

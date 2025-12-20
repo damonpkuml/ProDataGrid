@@ -1,0 +1,90 @@
+<!--
+  Copyright (c) Wiesław Šoltés. All rights reserved.
+  Licensed under the MIT license. See LICENSE file in the project root for details.
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
+             x:Class="DataGridSample.Pages.SummariesCustomPage"
+             x:DataType="viewModels:SummariesCustomViewModel"
+             mc:Ignorable="d"
+             d:DesignWidth="900" d:DesignHeight="600">
+  
+  <UserControl.DataContext>
+    <viewModels:SummariesCustomViewModel />
+  </UserControl.DataContext>
+  
+  <Grid Margin="12" RowDefinitions="Auto,*">
+    <StackPanel Spacing="4" Margin="0,0,0,8">
+      <TextBlock Text="Column Summaries - Custom Calculators" FontWeight="Bold" FontSize="18" />
+      <TextBlock TextWrapping="Wrap">
+        This sample demonstrates custom summary calculators. You can implement IDataGridSummaryCalculator
+        to create your own aggregate functions. This example shows Standard Deviation and Weighted Average calculators.
+        The custom calculators are added programmatically in the code-behind.
+      </TextBlock>
+    </StackPanel>
+
+    <DataGrid x:Name="CustomDataGrid"
+              Grid.Row="1"
+              ItemsSource="{Binding Orders}"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              CanUserResizeColumns="True"
+              CanUserReorderColumns="True"
+              CanUserSortColumns="True"
+              GridLinesVisibility="All"
+              ShowTotalSummary="True"
+              TotalSummaryPosition="Bottom">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Order ID" 
+                            Binding="{Binding OrderId}" 
+                            Width="120"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Count" Title="Count: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Customer" 
+                            Binding="{Binding Customer}" 
+                            Width="*"
+                            x:DataType="viewModels:SampleOrder" />
+        
+        <DataGridTextColumn Header="Product" 
+                            Binding="{Binding Product}" 
+                            Width="*"
+                            x:DataType="viewModels:SampleOrder" />
+        
+        <DataGridTextColumn Header="Quantity" 
+                            Binding="{Binding Quantity}" 
+                            Width="100"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Sum" StringFormat="N0" Title="Sum: " />
+            <DataGridAggregateSummaryDescription Aggregate="Average" StringFormat="N1" Title="Avg: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Unit Price" 
+                            Binding="{Binding UnitPrice, StringFormat={}{0:C2}}" 
+                            Width="120"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Average" StringFormat="C2" Title="Avg: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+        
+        <DataGridTextColumn Header="Total" 
+                            Binding="{Binding Total, StringFormat={}{0:C2}}" 
+                            Width="140"
+                            x:DataType="viewModels:SampleOrder">
+          <DataGridTextColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Sum" StringFormat="C2" Title="Total: " />
+          </DataGridTextColumn.Summaries>
+        </DataGridTextColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

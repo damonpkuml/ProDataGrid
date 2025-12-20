@@ -134,7 +134,7 @@ namespace Avalonia.Controls
                 neighborSlot = GetPreviousVisibleSlot(CurrentSlot);
                 if (EditingRow != null)
                 {
-                    while (neighborSlot != -1 && RowGroupHeadersTable.Contains(neighborSlot))
+                    while (neighborSlot != -1 && IsGroupSlot(neighborSlot))
                     {
                         neighborSlot = GetPreviousVisibleSlot(neighborSlot);
                     }
@@ -146,7 +146,7 @@ namespace Avalonia.Controls
                 neighborSlot = GetNextVisibleSlot(CurrentSlot);
                 if (EditingRow != null)
                 {
-                    while (neighborSlot < SlotCount && RowGroupHeadersTable.Contains(neighborSlot))
+                    while (neighborSlot < SlotCount && IsGroupSlot(neighborSlot))
                     {
                         neighborSlot = GetNextVisibleSlot(neighborSlot);
                     }
@@ -211,7 +211,7 @@ namespace Avalonia.Controls
                 NoSelectionChangeCount--;
             }
 
-            if (_successfullyUpdatedSelection && !RowGroupHeadersTable.Contains(targetSlot))
+            if (_successfullyUpdatedSelection && !IsGroupSlot(targetSlot))
             {
                 BeginCellEdit(e);
             }

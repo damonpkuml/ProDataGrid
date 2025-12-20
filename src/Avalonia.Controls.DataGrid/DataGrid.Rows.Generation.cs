@@ -156,9 +156,13 @@ namespace Avalonia.Controls
         private Control InsertDisplayedElement(int slot, bool updateSlotInformation)
         {
             Control slotElement;
-            if (RowGroupHeadersTable.Contains(slot))
+            if (IsGroupHeaderSlot(slot))
             {
                 slotElement = GenerateRowGroupHeader(slot, rowGroupInfo: RowGroupHeadersTable.GetValueAt(slot));
+            }
+            else if (IsGroupFooterSlot(slot))
+            {
+                slotElement = GenerateRowGroupFooter(slot, rowGroupInfo: RowGroupFootersTable.GetValueAt(slot));
             }
             else
             {
@@ -183,6 +187,7 @@ namespace Avalonia.Controls
             if (_rowsPresenter != null)
             {
                 DataGridRowGroupHeader groupHeader = null;
+                DataGridRowGroupFooter groupFooter = null;
                 DataGridRow row = element as DataGridRow;
                 if (row != null)
                 {
@@ -204,7 +209,11 @@ namespace Avalonia.Controls
                 else
                 {
                     groupHeader = element as DataGridRowGroupHeader;
-                    Debug.Assert(groupHeader != null);  // Nothing other and Rows and RowGroups now
+                    if (groupHeader == null)
+                    {
+                        groupFooter = element as DataGridRowGroupFooter;
+                    }
+                    Debug.Assert(groupHeader != null || groupFooter != null);  // Rows, RowGroupHeaders, or RowGroupFooters
                     if (groupHeader != null)
                     {
                         groupHeader.TotalIndent = (groupHeader.Level == 0) ? 0 : RowGroupSublevelIndents[groupHeader.Level - 1];
@@ -213,6 +222,16 @@ namespace Avalonia.Controls
                             _rowsPresenter.Children.Add(element);
                         }
                         groupHeader.LoadVisualsForDisplay();
+                    }
+                    else if (groupFooter != null)
+                    {
+                        if (!groupFooter.IsRecycled)
+                        {
+                            _rowsPresenter.Children.Add(element);
+                        }
+                        groupFooter.ApplySummaryRowTheme();
+                        groupFooter.UpdateSummaryRowOffset();
+                        groupFooter.UpdateSummaryRowState();
                     }
                 }
 
@@ -223,6 +242,10 @@ namespace Avalonia.Controls
                 else if (groupHeader != null)
                 {
                     _rowsPresenter.RegisterAnchorCandidate(groupHeader);
+                }
+                else if (groupFooter != null)
+                {
+                    _rowsPresenter.RegisterAnchorCandidate(groupFooter);
                 }
 
                 // Measure the element and update AvailableRowRoom
@@ -236,6 +259,11 @@ namespace Avalonia.Controls
                     _rowGroupHeightsByLevel[groupHeader.Level] = groupHeader.DesiredSize.Height;
                     // Record the measured group header height with the estimator
                     estimator?.RecordRowGroupHeaderHeight(slot, groupHeader.Level, element.DesiredSize.Height);
+                }
+                else if (groupFooter != null)
+                {
+                    _rowGroupHeightsByLevel[groupFooter.Level] = groupFooter.DesiredSize.Height;
+                    estimator?.RecordRowGroupHeaderHeight(slot, groupFooter.Level, element.DesiredSize.Height);
                 }
 
                 if (row != null)

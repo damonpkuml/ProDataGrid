@@ -198,7 +198,14 @@ namespace Avalonia.Controls.Utils
                 {
                     item = propertyInfo.GetValue(item, index);
                 }
-                type = propertyInfo.PropertyType.GetNonNullableType();
+
+                var nextType = propertyInfo.PropertyType.GetNonNullableType();
+                if (nextType == typeof(object) && item != null)
+                {
+                    nextType = item.GetType();
+                }
+
+                type = nextType;
             }
 
             return propertyInfo;
@@ -365,7 +372,7 @@ namespace Avalonia.Controls.Utils
                 {
                     foreach (var typeInterface in type.GetInterfaces())
                     {
-                        property = type.GetProperty(propertyPath);
+                        property = typeInterface.GetProperty(propertyPath);
                         if (property != null)
                         {
                             return property;

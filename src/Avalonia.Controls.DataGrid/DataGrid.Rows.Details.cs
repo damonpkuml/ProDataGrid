@@ -20,7 +20,9 @@ namespace Avalonia.Controls
             if (RowDetailsVisibilityMode == DataGridRowDetailsVisibilityMode.Visible)
             {
                 // Total rows minus ones which explicity turned details off minus the RowGroupHeaders
-                return indexCount - _showDetailsTable.GetIndexCount(lowerBound, upperBound, false) - RowGroupHeadersTable.GetIndexCount(lowerBound, upperBound);
+                int groupSlotCount = RowGroupHeadersTable.GetIndexCount(lowerBound, upperBound) +
+                    RowGroupFootersTable.GetIndexCount(lowerBound, upperBound);
+                return indexCount - _showDetailsTable.GetIndexCount(lowerBound, upperBound, false) - groupSlotCount;
             }
             else if (RowDetailsVisibilityMode == DataGridRowDetailsVisibilityMode.Collapsed)
             {

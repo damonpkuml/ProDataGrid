@@ -57,7 +57,7 @@ namespace Avalonia.Controls
             DataGridCellCoordinates oldCurrentCell = new DataGridCellCoordinates(CurrentCellCoordinates);
 
             object newCurrentItem = null;
-            if (!RowGroupHeadersTable.Contains(slot))
+            if (!IsGroupSlot(slot))
             {
                 int rowIndex = RowIndexFromSlot(slot);
                 if (rowIndex >= 0 && rowIndex < DataConnection.Count)
@@ -77,7 +77,7 @@ namespace Avalonia.Controls
                     oldDisplayedElement = DisplayData.GetDisplayedElement(oldCurrentCell.Slot);
                 }
 
-                if (!RowGroupHeadersTable.Contains(oldCurrentCell.Slot) && !_temporarilyResetCurrentCell)
+                if (!IsGroupSlot(oldCurrentCell.Slot) && !_temporarilyResetCurrentCell)
                 {
                     bool keepFocus = ContainsFocus;
                     if (commitEdit)
@@ -347,7 +347,7 @@ namespace Avalonia.Controls
 
             slot = SlotFromRowIndex(rowIndex);
             if (slot == -1 ||
-                RowGroupHeadersTable.Contains(slot) ||
+                IsGroupSlot(slot) ||
                 IsSlotOutOfSelectionBounds(slot))
             {
                 return false;
@@ -411,7 +411,7 @@ namespace Avalonia.Controls
             }
 
             if (IsColumnOutOfBounds(CurrentColumnIndex) ||
-                RowGroupHeadersTable.Contains(CurrentSlot) ||
+                IsGroupSlot(CurrentSlot) ||
                 IsSlotOutOfSelectionBounds(CurrentSlot))
             {
                 return DataGridCellInfo.Unset;
@@ -538,7 +538,7 @@ namespace Avalonia.Controls
         {
             get
             {
-                if (CurrentSlot == -1 || ItemsSource == null || RowGroupHeadersTable.Contains(CurrentSlot))
+                if (CurrentSlot == -1 || ItemsSource == null || IsGroupSlot(CurrentSlot))
                 {
                     return null;
                 }

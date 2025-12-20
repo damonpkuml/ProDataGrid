@@ -52,15 +52,15 @@ namespace Avalonia.Controls
                 
                 if (estimator != null)
                 {
-                    var rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
-                    bool isHeader = rowGroupInfo != null;
-                    int level = isHeader ? rowGroupInfo.Level : 0;
-                    bool hasDetails = !isHeader && GetRowDetailsVisibility(slot);
-                    elementHeight = estimator.GetEstimatedHeight(slot, isHeader, level, hasDetails);
+                    var rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot) ?? RowGroupFootersTable.GetValueAt(slot);
+                    bool isGroupSlot = rowGroupInfo != null;
+                    int level = isGroupSlot ? rowGroupInfo.Level : 0;
+                    bool hasDetails = !isGroupSlot && GetRowDetailsVisibility(slot);
+                    elementHeight = estimator.GetEstimatedHeight(slot, isGroupSlot, level, hasDetails);
                 }
                 else
                 {
-                    elementHeight = RowGroupHeadersTable.Contains(slot) ? RowGroupHeaderHeightEstimate : RowHeightEstimate;
+                    elementHeight = IsGroupSlot(slot) ? RowGroupHeaderHeightEstimate : RowHeightEstimate;
                 }
 
                 SetVerticalOffset(_verticalOffset + elementHeight);
@@ -159,6 +159,7 @@ namespace Avalonia.Controls
             // Update the slot ranges for the RowGroupHeaders before updating the _selectedItems table,
             // because it's dependent on the slots being correct with regards to grouping.
             RowGroupHeadersTable.InsertIndex(slotInserted);
+            RowGroupFootersTable.InsertIndex(slotInserted);
             if (_selectionModelAdapter == null)
             {
                 _selectedItems.InsertIndex(slotInserted);

@@ -1,0 +1,130 @@
+<!--
+  Copyright (c) Wiesław Šoltés. All rights reserved.
+  Licensed under the MIT license. See LICENSE file in the project root for details.
+-->
+<UserControl
+    x:Class="DataGridSample.Pages.SummariesHierarchicalPage"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
+    xmlns:adapters="clr-namespace:DataGridSample.Adapters"
+    xmlns:hier="clr-namespace:Avalonia.Controls.DataGridHierarchical;assembly=Avalonia.Controls.DataGrid"
+    x:DataType="viewModels:HierarchicalSampleViewModel"
+    d:DesignHeight="720"
+    d:DesignWidth="1100"
+    mc:Ignorable="d">
+
+  <UserControl.DataContext>
+    <viewModels:HierarchicalSampleViewModel />
+  </UserControl.DataContext>
+
+  <UserControl.Resources>
+    <adapters:HierarchicalSortingAdapterFactory x:Key="HierarchicalSortingAdapterFactory" />
+  </UserControl.Resources>
+
+  <Grid Margin="12"
+        RowDefinitions="Auto,Auto,*">
+    <StackPanel Spacing="4">
+      <TextBlock Text="Column Summaries - Hierarchical Model"
+                 FontWeight="Bold"
+                 FontSize="18" />
+      <TextBlock TextWrapping="Wrap"
+                 Text="This sample combines hierarchical rows with the total summary row. Summary values reflect the flattened node list; expanding nodes will change totals as more items appear." />
+    </StackPanel>
+
+    <StackPanel Grid.Row="1"
+                Orientation="Horizontal"
+                Spacing="8"
+                Margin="0 8">
+      <Button Content="Expand all"
+              Command="{Binding ExpandAllCommand}" />
+      <Button Content="Collapse all"
+              Command="{Binding CollapseAllCommand}" />
+      <Button Content="Refresh root"
+              Command="{Binding RefreshRootCommand}" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="2"
+              AutoGenerateColumns="False"
+              HierarchicalModel="{Binding Model}"
+              SortingModel="{Binding SortingModel, Mode=OneWay}"
+              SortingAdapterFactory="{StaticResource HierarchicalSortingAdapterFactory}"
+              HierarchicalRowsEnabled="True"
+              x:DataType="viewModels:HierarchicalSampleViewModel"
+              CanUserSortColumns="True"
+              CanUserResizeColumns="True"
+              CanUserReorderColumns="True"
+              HeadersVisibility="Column"
+              GridLinesVisibility="Horizontal"
+              SelectionMode="Single"
+              ShowTotalSummary="True"
+              TotalSummaryPosition="Bottom">
+      <DataGrid.Columns>
+        <DataGridHierarchicalColumn Header="Name"
+                                    SortMemberPath="Item.Name"
+                                    Width="2*"
+                                    x:CompileBindings="False"
+                                    Binding="{Binding Item}">
+          <DataGridHierarchicalColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Count" Title="Nodes: " />
+          </DataGridHierarchicalColumn.Summaries>
+          <DataGridHierarchicalColumn.CellTemplate>
+            <DataTemplate x:DataType="viewModels:HierarchicalSampleViewModel+TreeItem">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </DataGridHierarchicalColumn.CellTemplate>
+        </DataGridHierarchicalColumn>
+
+        <DataGridTemplateColumn Header="Kind"
+                                SortMemberPath="Item.Kind"
+                                Width="120"
+                                x:CompileBindings="False">
+          <DataGridTemplateColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="CountDistinct" Title="Kinds: " />
+          </DataGridTemplateColumn.Summaries>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="hier:HierarchicalNode">
+              <TextBlock x:DataType="viewModels:HierarchicalSampleViewModel+TreeItem"
+                         DataContext="{Binding Item}"
+                         Text="{Binding Kind}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Header="Size"
+                                SortMemberPath="Item.Size"
+                                Width="120"
+                                x:CompileBindings="False">
+          <DataGridTemplateColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Sum" StringFormat="N0" Title="Bytes: " />
+          </DataGridTemplateColumn.Summaries>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="hier:HierarchicalNode">
+              <TextBlock x:DataType="viewModels:HierarchicalSampleViewModel+TreeItem"
+                         DataContext="{Binding Item}"
+                         Text="{Binding Size, StringFormat=N0}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+
+        <DataGridTemplateColumn Header="Modified"
+                                SortMemberPath="Item.Modified"
+                                Width="160"
+                                x:CompileBindings="False">
+          <DataGridTemplateColumn.Summaries>
+            <DataGridAggregateSummaryDescription Aggregate="Max" StringFormat="yyyy-MM-dd" Title="Latest: " />
+          </DataGridTemplateColumn.Summaries>
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate x:DataType="hier:HierarchicalNode">
+              <TextBlock x:DataType="viewModels:HierarchicalSampleViewModel+TreeItem"
+                         DataContext="{Binding Item}"
+                         Text="{Binding Modified, StringFormat=yyyy-MM-dd HH:mm}" />
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

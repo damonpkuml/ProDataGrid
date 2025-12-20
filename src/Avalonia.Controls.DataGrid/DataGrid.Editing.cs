@@ -69,7 +69,7 @@ namespace Avalonia.Controls
         /// <returns>True if the slot is the placeholder row; otherwise, false.</returns>
         private bool IsSlotPlaceholderRow(int slot)
         {
-            if (slot < 0 || RowGroupHeadersTable.Contains(slot))
+            if (slot < 0 || IsGroupSlot(slot))
             {
                 return false;
             }
@@ -450,6 +450,11 @@ namespace Avalonia.Controls
                     dataGridColumn: CurrentColumn,
                     dataGridRow: editingRow,
                     dataGridCell: editingCell);
+
+                if (editAction == DataGridEditAction.Commit && HasAnySummaries())
+                {
+                    InvalidateSummaries();
+                }
 
                 editingRow.InvalidateDesiredHeight();
                 var column = editingCell.OwningColumn;

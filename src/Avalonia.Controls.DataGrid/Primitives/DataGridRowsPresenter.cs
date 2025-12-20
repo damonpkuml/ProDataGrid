@@ -155,6 +155,11 @@ namespace Avalonia.Controls.Primitives
                     double leftEdge = (OwningGrid.AreRowGroupHeadersFrozen) ? 0 : -OwningGrid.HorizontalOffset;
                     groupHeader.Arrange(new Rect(leftEdge, topEdge, rowDesiredWidth - leftEdge, element.DesiredSize.Height));
                 }
+                else if (element is DataGridRowGroupFooter groupFooter)
+                {
+                    double leftEdge = (OwningGrid.AreRowGroupHeadersFrozen) ? 0 : -OwningGrid.HorizontalOffset;
+                    groupFooter.Arrange(new Rect(leftEdge, topEdge, rowDesiredWidth - leftEdge, element.DesiredSize.Height));
+                }
 
                 topEdge += element.DesiredSize.Height;
             }
@@ -359,7 +364,7 @@ namespace Avalonia.Controls.Primitives
             }
 
             var recycleLimit = Math.Max(PrefetchBufferRows + 1, 4);
-            OwningGrid.DisplayData.TrimRecycledPools(this, recycleLimit, recycleLimit);
+            OwningGrid.DisplayData.TrimRecycledPools(this, recycleLimit, recycleLimit, recycleLimit);
         }
 
 #if DEBUG

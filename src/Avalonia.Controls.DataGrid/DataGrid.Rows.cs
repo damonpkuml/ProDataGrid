@@ -163,11 +163,11 @@ namespace Avalonia.Controls
                         {
                             if (!_collapsedSlotsTable.Contains(slot))
                             {
-                                var rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
-                                bool isHeader = rowGroupInfo != null;
-                                int level = isHeader ? rowGroupInfo.Level : 0;
-                                bool hasDetails = !isHeader && GetRowDetailsVisibility(slot);
-                                totalRowsHeight += estimator.GetEstimatedHeight(slot, isHeader, level, hasDetails);
+                                var rowGroupInfo = GetGroupInfoForSlot(slot);
+                                bool isGroupSlot = rowGroupInfo != null;
+                                int level = isGroupSlot ? rowGroupInfo.Level : 0;
+                                bool hasDetails = !isGroupSlot && GetRowDetailsVisibility(slot);
+                                totalRowsHeight += estimator.GetEstimatedHeight(slot, isGroupSlot, level, hasDetails);
                             }
                         }
                     }
@@ -293,7 +293,10 @@ namespace Avalonia.Controls
                 }
                 else
                 {
-                    InsertElement(slot, GenerateRowGroupHeader(slot, groupInfo),
+                    Control element = IsGroupFooterSlot(slot)
+                        ? GenerateRowGroupFooter(slot, groupInfo)
+                        : GenerateRowGroupHeader(slot, groupInfo);
+                    InsertElement(slot, element,
                         updateVerticalScrollBarOnly: false,
                         isCollapsed: false,
                         isRow: isRow);
@@ -380,7 +383,7 @@ namespace Avalonia.Controls
                 if (DataConnection != null && ColumnsItemsInternal.Count > 0)
                 {
                     AddSlots(DataConnection.Count);
-                    AddSlots(DataConnection.Count + RowGroupHeadersTable.IndexCount);
+                    AddSlots(DataConnection.Count + RowGroupHeadersTable.IndexCount + RowGroupFootersTable.IndexCount);
 
                     InvalidateMeasure();
                 }
@@ -860,11 +863,11 @@ namespace Avalonia.Controls
                             // Use the estimator for per-slot height estimation
                             for (int slot = firstSlot; slot <= lastSlot; slot++)
                             {
-                                var rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
-                                bool isHeader = rowGroupInfo != null;
-                                int level = isHeader ? rowGroupInfo.Level : 0;
-                                bool hasDetails = !isHeader && GetRowDetailsVisibility(slot);
-                                currentHeightChange += estimator.GetEstimatedHeight(slot, isHeader, level, hasDetails);
+                                var rowGroupInfo = GetGroupInfoForSlot(slot);
+                                bool isGroupSlot = rowGroupInfo != null;
+                                int level = isGroupSlot ? rowGroupInfo.Level : 0;
+                                bool hasDetails = !isGroupSlot && GetRowDetailsVisibility(slot);
+                                currentHeightChange += estimator.GetEstimatedHeight(slot, isGroupSlot, level, hasDetails);
                             }
                         }
                         else
@@ -932,11 +935,11 @@ namespace Avalonia.Controls
                 {
                     if (!_collapsedSlotsTable.Contains(slot))
                     {
-                        var rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
-                        bool isHeader = rowGroupInfo != null;
-                        int level = isHeader ? rowGroupInfo.Level : 0;
-                        bool hasDetails = !isHeader && GetRowDetailsVisibility(slot);
-                        totalHeight += estimator.GetEstimatedHeight(slot, isHeader, level, hasDetails);
+                        var rowGroupInfo = GetGroupInfoForSlot(slot);
+                        bool isGroupSlot = rowGroupInfo != null;
+                        int level = isGroupSlot ? rowGroupInfo.Level : 0;
+                        bool hasDetails = !isGroupSlot && GetRowDetailsVisibility(slot);
+                        totalHeight += estimator.GetEstimatedHeight(slot, isGroupSlot, level, hasDetails);
                     }
                 }
                 return totalHeight;
@@ -964,14 +967,14 @@ namespace Avalonia.Controls
             else
             {
                 var estimator = RowHeightEstimator;
-                DataGridRowGroupInfo rowGroupInfo = RowGroupHeadersTable.GetValueAt(slot);
+                DataGridRowGroupInfo rowGroupInfo = GetGroupInfoForSlot(slot);
                 
                 if (estimator != null)
                 {
-                    bool isHeader = rowGroupInfo != null;
-                    int level = isHeader ? rowGroupInfo.Level : 0;
-                    bool hasDetails = !isHeader && GetRowDetailsVisibility(slot);
-                    return estimator.GetEstimatedHeight(slot, isHeader, level, hasDetails);
+                    bool isGroupSlot = rowGroupInfo != null;
+                    int level = isGroupSlot ? rowGroupInfo.Level : 0;
+                    bool hasDetails = !isGroupSlot && GetRowDetailsVisibility(slot);
+                    return estimator.GetEstimatedHeight(slot, isGroupSlot, level, hasDetails);
                 }
 
                 // Fallback to simple estimation
@@ -1021,10 +1024,22 @@ namespace Avalonia.Controls
 
         private void UpdateTablesForRemoval(int slotDeleted, object itemDeleted)
         {
-            if (RowGroupHeadersTable.Contains(slotDeleted))
+            if (IsGroupHeaderSlot(slotDeleted))
             {
                 // A RowGroupHeader was removed
                 RowGroupHeadersTable.RemoveIndexAndValue(slotDeleted);
+                RowGroupFootersTable.RemoveIndex(slotDeleted);
+                _collapsedSlotsTable.RemoveIndexAndValue(slotDeleted);
+                if (_selectionModelAdapter == null)
+                {
+                    _selectedItems.DeleteSlot(slotDeleted);
+                }
+            }
+            else if (IsGroupFooterSlot(slotDeleted))
+            {
+                // A RowGroupFooter was removed
+                RowGroupFootersTable.RemoveIndexAndValue(slotDeleted);
+                RowGroupHeadersTable.RemoveIndex(slotDeleted);
                 _collapsedSlotsTable.RemoveIndexAndValue(slotDeleted);
                 if (_selectionModelAdapter == null)
                 {
@@ -1043,6 +1058,7 @@ namespace Avalonia.Controls
                     _selectedItems.Delete(slotDeleted, itemDeleted);
                 }
                 RowGroupHeadersTable.RemoveIndex(slotDeleted);
+                RowGroupFootersTable.RemoveIndex(slotDeleted);
                 _collapsedSlotsTable.RemoveIndex(slotDeleted);
             }
         }
@@ -1110,6 +1126,7 @@ namespace Avalonia.Controls
         {
             var value = (bool)e.NewValue;
             ProcessFrozenColumnCount();
+            UpdateGroupSummaryRowOffset();
 
             // Update elements in the RowGroupHeader that were previously frozen
             if (value)

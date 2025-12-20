@@ -185,6 +185,21 @@
     <TabItem Header="Lifecycle Hooks">
       <pages:ContainerLifecyclePage />
     </TabItem>
+    <TabItem Header="Summaries - Basic">
+      <pages:SummariesBasicPage />
+    </TabItem>
+    <TabItem Header="Summaries - Grouped">
+      <pages:SummariesGroupedPage />
+    </TabItem>
+    <TabItem Header="Summaries - Hierarchical">
+      <pages:SummariesHierarchicalPage />
+    </TabItem>
+    <TabItem Header="Summaries - Filtering">
+      <pages:SummariesFilteringPage />
+    </TabItem>
+    <TabItem Header="Summaries - Custom">
+      <pages:SummariesCustomPage />
+    </TabItem>
   </TabControl>
 
 </Window>

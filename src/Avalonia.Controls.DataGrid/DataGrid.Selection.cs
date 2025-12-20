@@ -1316,7 +1316,7 @@ namespace Avalonia.Controls
             for (int rowIndex = 0; rowIndex < DataConnection.Count; rowIndex++)
             {
                 int slot = SlotFromRowIndex(rowIndex);
-                if (slot < 0 || RowGroupHeadersTable.Contains(slot))
+                if (slot < 0 || IsGroupSlot(slot))
                 {
                     continue;
                 }
@@ -1405,7 +1405,7 @@ namespace Avalonia.Controls
                 }
 
                 int slot = SlotFromRowIndex(rowIndex);
-                if (slot < 0 || RowGroupHeadersTable.Contains(slot))
+                if (slot < 0 || IsGroupSlot(slot))
                 {
                     continue;
                 }
