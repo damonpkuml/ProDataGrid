@@ -19,7 +19,8 @@ namespace DataGridSample.ViewModels
             Model = new HierarchicalModel<TreeItem>(new HierarchicalOptions<TreeItem>
             {
                 ChildrenSelector = x => x.Children,
-                AutoExpandRoot = true
+                AutoExpandRoot = true,
+                IsLeafSelector = x => x.Children.Count == 0
             });
 
             // Start with multiple roots to demonstrate the feature
