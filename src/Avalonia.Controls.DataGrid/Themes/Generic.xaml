@@ -216,6 +216,9 @@
         <Style Selector="^:checked /template/ Path#PART_Glyph">
           <Setter Property="Data" Value="{DynamicResource DataGridRowGroupHeaderIconOpenedPath}" />
         </Style>
+        <Style Selector="^:disabled /template/ Path#PART_Glyph">
+          <Setter Property="Opacity" Value="0" />
+        </Style>
       </ControlTheme>
 
       <!-- DataGridHierarchicalPresenter -->
@@ -236,7 +239,6 @@
                               BorderBrush="Transparent"
                               BorderThickness="0"
                               IsEnabled="{TemplateBinding IsExpandable}"
-                              IsVisible="{TemplateBinding IsExpandable}"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center"
                               IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
