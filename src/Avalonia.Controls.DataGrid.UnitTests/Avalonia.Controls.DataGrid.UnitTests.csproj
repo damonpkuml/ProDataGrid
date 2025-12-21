@@ -10,6 +10,19 @@
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)/../../build/avalonia.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(MSBuildProjectDirectory)/TestResults/</CoverletOutput>
+    <CoverageReportLimit>0</CoverageReportLimit>
+    <CoverageReportFileColumnWidth>64</CoverageReportFileColumnWidth>
+    <CoverageReporterSearchDirectory>$(MSBuildProjectDirectory)/../..</CoverageReporterSearchDirectory>
+    <CoverageReportLogAsWarning>false</CoverageReportLogAsWarning>
+    <CoverageReportLogToConsole>true</CoverageReportLogToConsole>
+    <CoverageReporterTaskTargetFramework>netstandard2.0</CoverageReporterTaskTargetFramework>
+    <CoverageReporterTaskPath>$(MSBuildProjectDirectory)/../../tools/CoverageReporter/bin/$(Configuration)/$(CoverageReporterTaskTargetFramework)/CoverageReporter.dll</CoverageReporterTaskPath>
+  </PropertyGroup>
   
   <Import Project="../../build/SharedVersion.props" />
   
@@ -23,6 +36,8 @@
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Themes.Simple" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.msbuild" PrivateAssets="all" />
     <PackageReference Include="JetBrains.dotMemoryUnit" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -35,5 +50,27 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <UsingTask TaskName="CoverageReporter.CoverageReportTask" AssemblyFile="$(CoverageReporterTaskPath)" />
+
+  <Target Name="BuildCoverageReporterTask" BeforeTargets="ReportCoverageByFile">
+    <MSBuild
+      Projects="$(MSBuildProjectDirectory)/../../tools/CoverageReporter/CoverageReporter.csproj"
+      Targets="Restore;Build"
+      Properties="Configuration=$(Configuration);TargetFramework=$(CoverageReporterTaskTargetFramework)" />
+  </Target>
+
+  <Target Name="ReportCoverageByFile"
+          AfterTargets="GenerateCoverageResultAfterTest"
+          DependsOnTargets="BuildCoverageReporterTask;GenerateCoverageResultAfterTest"
+          Condition="'$(CollectCoverage)' == 'true'">
+    <CoverageReportTask
+      InputFiles="@(CoverletReport)"
+      SearchDirectory="$(CoverageReporterSearchDirectory)"
+      LogAsWarning="$(CoverageReportLogAsWarning)"
+      LogToConsole="$(CoverageReportLogToConsole)"
+      Limit="$(CoverageReportLimit)"
+      FileColumnWidth="$(CoverageReportFileColumnWidth)" />
+  </Target>
 
 </Project>
