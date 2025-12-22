@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using Avalonia.Collections;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -61,6 +62,21 @@ namespace Avalonia.Controls
         {
             get => GetValue(ItemsSourceProperty);
             set => SetValue(ItemsSourceProperty, value);
+        }
+
+        /// <summary>
+        /// Defines the <see cref="ItemTemplate"/> property.
+        /// </summary>
+        public static readonly StyledProperty<IDataTemplate> ItemTemplateProperty =
+            AutoCompleteBox.ItemTemplateProperty.AddOwner<DataGridAutoCompleteColumn>();
+
+        /// <summary>
+        /// Gets or sets the template used to display each item in the suggestion list.
+        /// </summary>
+        public IDataTemplate ItemTemplate
+        {
+            get => GetValue(ItemTemplateProperty);
+            set => SetValue(ItemTemplateProperty, value);
         }
 
         /// <summary>
@@ -168,6 +184,7 @@ namespace Avalonia.Controls
             base.OnPropertyChanged(change);
 
             if (change.Property == ItemsSourceProperty
+                || change.Property == ItemTemplateProperty
                 || change.Property == FilterModeProperty
                 || change.Property == MinimumPrefixLengthProperty
                 || change.Property == MinimumPopulateDelayProperty
@@ -281,6 +298,7 @@ namespace Avalonia.Controls
                 autoComplete.ItemsSource = ItemsSource;
             }
 
+            DataGridHelper.SyncColumnProperty(this, autoComplete, ItemTemplateProperty);
             autoComplete.FilterMode = FilterMode;
             autoComplete.MinimumPrefixLength = MinimumPrefixLength;
             autoComplete.MinimumPopulateDelay = MinimumPopulateDelay;

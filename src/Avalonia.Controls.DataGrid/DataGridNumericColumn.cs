@@ -217,6 +217,21 @@ namespace Avalonia.Controls
             set => SetValue(HorizontalContentAlignmentProperty, value);
         }
 
+        /// <summary>
+        /// Defines the <see cref="VerticalContentAlignment"/> property.
+        /// </summary>
+        public static readonly StyledProperty<VerticalAlignment> VerticalContentAlignmentProperty =
+            ContentControl.VerticalContentAlignmentProperty.AddOwner<DataGridNumericColumn>();
+
+        /// <summary>
+        /// Gets or sets the vertical alignment of the content.
+        /// </summary>
+        public VerticalAlignment VerticalContentAlignment
+        {
+            get => GetValue(VerticalContentAlignmentProperty);
+            set => SetValue(VerticalContentAlignmentProperty, value);
+        }
+
         static DataGridNumericColumn()
         {
             HorizontalContentAlignmentProperty.OverrideDefaultValue<DataGridNumericColumn>(HorizontalAlignment.Right);
@@ -242,7 +257,8 @@ namespace Avalonia.Controls
                 || change.Property == AllowSpinProperty
                 || change.Property == ClipValueToMinMaxProperty
                 || change.Property == WatermarkProperty
-                || change.Property == HorizontalContentAlignmentProperty)
+                || change.Property == HorizontalContentAlignmentProperty
+                || change.Property == VerticalContentAlignmentProperty)
             {
                 NotifyPropertyChanged(change.Property.Name);
             }
@@ -377,6 +393,10 @@ namespace Avalonia.Controls
                 HorizontalAlignment.Right => TextAlignment.Right,
                 _ => TextAlignment.Right
             };
+
+            textBlock.VerticalAlignment = IsSet(VerticalContentAlignmentProperty)
+                ? VerticalContentAlignment
+                : VerticalAlignment.Center;
         }
 
         private void SyncEditProperties(NumericUpDown numericUpDown)
@@ -417,6 +437,7 @@ namespace Avalonia.Controls
             }
 
             numericUpDown.HorizontalContentAlignment = HorizontalContentAlignment;
+            DataGridHelper.SyncColumnProperty(this, numericUpDown, NumericUpDown.VerticalContentAlignmentProperty, VerticalContentAlignmentProperty);
         }
 
         private ControlTheme GetThemeValue(Lazy<ControlTheme> themeCache)

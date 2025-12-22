@@ -9,6 +9,7 @@ using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Styling;
 
 namespace Avalonia.Controls
@@ -152,6 +153,36 @@ namespace Avalonia.Controls
             set => SetValue(WatermarkProperty, value);
         }
 
+        /// <summary>
+        /// Defines the <see cref="HorizontalContentAlignment"/> property.
+        /// </summary>
+        public static readonly StyledProperty<HorizontalAlignment> HorizontalContentAlignmentProperty =
+            ContentControl.HorizontalContentAlignmentProperty.AddOwner<DataGridDatePickerColumn>();
+
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the content.
+        /// </summary>
+        public HorizontalAlignment HorizontalContentAlignment
+        {
+            get => GetValue(HorizontalContentAlignmentProperty);
+            set => SetValue(HorizontalContentAlignmentProperty, value);
+        }
+
+        /// <summary>
+        /// Defines the <see cref="VerticalContentAlignment"/> property.
+        /// </summary>
+        public static readonly StyledProperty<VerticalAlignment> VerticalContentAlignmentProperty =
+            ContentControl.VerticalContentAlignmentProperty.AddOwner<DataGridDatePickerColumn>();
+
+        /// <summary>
+        /// Gets or sets the vertical alignment of the content.
+        /// </summary>
+        public VerticalAlignment VerticalContentAlignment
+        {
+            get => GetValue(VerticalContentAlignmentProperty);
+            set => SetValue(VerticalContentAlignmentProperty, value);
+        }
+
         static DataGridDatePickerColumn()
         {
             IsTodayHighlightedProperty.OverrideDefaultValue<DataGridDatePickerColumn>(true);
@@ -171,7 +202,9 @@ namespace Avalonia.Controls
                 || change.Property == IsTodayHighlightedProperty
                 || change.Property == SelectedDateFormatProperty
                 || change.Property == CustomDateFormatStringProperty
-                || change.Property == WatermarkProperty)
+                || change.Property == WatermarkProperty
+                || change.Property == HorizontalContentAlignmentProperty
+                || change.Property == VerticalContentAlignmentProperty)
             {
                 NotifyPropertyChanged(change.Property.Name);
             }
@@ -203,6 +236,8 @@ namespace Avalonia.Controls
             {
                 textBlock.Theme = theme;
             }
+
+            SyncDisplayAlignment(textBlock);
 
             if (Binding != null && dataItem != DataGridCollectionView.NewItemPlaceholder)
             {
@@ -284,6 +319,18 @@ namespace Avalonia.Controls
             {
                 SyncEditProperties(datePicker);
             }
+            else if (element is TextBlock textBlock)
+            {
+                if (propertyName == nameof(HorizontalContentAlignment) ||
+                    propertyName == nameof(VerticalContentAlignment))
+                {
+                    SyncDisplayAlignment(textBlock);
+                }
+                else
+                {
+                    base.RefreshCellContent(element, propertyName);
+                }
+            }
             else
             {
                 base.RefreshCellContent(element, propertyName);
@@ -325,6 +372,31 @@ namespace Avalonia.Controls
             {
                 datePicker.Watermark = Watermark;
             }
+
+            DataGridHelper.SyncColumnProperty(this, datePicker, HorizontalContentAlignmentProperty);
+            DataGridHelper.SyncColumnProperty(this, datePicker, VerticalContentAlignmentProperty);
+        }
+
+        private void SyncDisplayAlignment(TextBlock textBlock)
+        {
+            if (IsSet(HorizontalContentAlignmentProperty))
+            {
+                textBlock.TextAlignment = HorizontalContentAlignment switch
+                {
+                    HorizontalAlignment.Left => TextAlignment.Left,
+                    HorizontalAlignment.Center => TextAlignment.Center,
+                    HorizontalAlignment.Right => TextAlignment.Right,
+                    _ => TextAlignment.Left
+                };
+            }
+            else
+            {
+                textBlock.ClearValue(TextBlock.TextAlignmentProperty);
+            }
+
+            textBlock.VerticalAlignment = IsSet(VerticalContentAlignmentProperty)
+                ? VerticalContentAlignment
+                : VerticalAlignment.Center;
         }
 
         private ControlTheme GetThemeValue(Lazy<ControlTheme> themeCache)

@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Avalonia.Collections;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Controls.Utils;
 using Avalonia.Data;
 using Avalonia.Input;
@@ -67,6 +68,51 @@ namespace Avalonia.Controls
         {
             get => GetValue(ItemsSourceProperty);
             set => SetValue(ItemsSourceProperty, value);
+        }
+
+        /// <summary>
+        /// Defines the <see cref="ItemTemplate"/> property.
+        /// </summary>
+        public static readonly StyledProperty<IDataTemplate> ItemTemplateProperty =
+            ItemsControl.ItemTemplateProperty.AddOwner<DataGridComboBoxColumn>();
+
+        /// <summary>
+        /// Gets or sets the template used to display each item in the combo box.
+        /// </summary>
+        public IDataTemplate ItemTemplate
+        {
+            get => GetValue(ItemTemplateProperty);
+            set => SetValue(ItemTemplateProperty, value);
+        }
+
+        /// <summary>
+        /// Defines the <see cref="HorizontalContentAlignment"/> property.
+        /// </summary>
+        public static readonly StyledProperty<HorizontalAlignment> HorizontalContentAlignmentProperty =
+            ContentControl.HorizontalContentAlignmentProperty.AddOwner<DataGridComboBoxColumn>();
+
+        /// <summary>
+        /// Gets or sets the horizontal alignment of the content.
+        /// </summary>
+        public HorizontalAlignment HorizontalContentAlignment
+        {
+            get => GetValue(HorizontalContentAlignmentProperty);
+            set => SetValue(HorizontalContentAlignmentProperty, value);
+        }
+
+        /// <summary>
+        /// Defines the <see cref="VerticalContentAlignment"/> property.
+        /// </summary>
+        public static readonly StyledProperty<VerticalAlignment> VerticalContentAlignmentProperty =
+            ContentControl.VerticalContentAlignmentProperty.AddOwner<DataGridComboBoxColumn>();
+
+        /// <summary>
+        /// Gets or sets the vertical alignment of the content.
+        /// </summary>
+        public VerticalAlignment VerticalContentAlignment
+        {
+            get => GetValue(VerticalContentAlignmentProperty);
+            set => SetValue(VerticalContentAlignmentProperty, value);
         }
 
         /// <summary>
@@ -320,6 +366,15 @@ namespace Avalonia.Controls
                     case nameof(ItemsSource):
                         DataGridHelper.SyncColumnProperty(this, comboBox, ItemsSourceProperty);
                         break;
+                    case nameof(ItemTemplate):
+                        DataGridHelper.SyncColumnProperty(this, comboBox, ItemTemplateProperty);
+                        break;
+                    case nameof(HorizontalContentAlignment):
+                        DataGridHelper.SyncColumnProperty(this, comboBox, HorizontalContentAlignmentProperty);
+                        break;
+                    case nameof(VerticalContentAlignment):
+                        DataGridHelper.SyncColumnProperty(this, comboBox, VerticalContentAlignmentProperty);
+                        break;
                     case nameof(DisplayMemberPath):
                         comboBox.DisplayMemberBinding = CreateDisplayMemberBinding();
                         break;
@@ -352,6 +407,9 @@ namespace Avalonia.Controls
             base.OnPropertyChanged(change);
 
             if (change.Property == ItemsSourceProperty ||
+                change.Property == ItemTemplateProperty ||
+                change.Property == HorizontalContentAlignmentProperty ||
+                change.Property == VerticalContentAlignmentProperty ||
                 change.Property == DisplayMemberPathProperty ||
                 change.Property == SelectedValuePathProperty)
             {
@@ -380,6 +438,9 @@ namespace Avalonia.Controls
         private void ApplyColumnProperties(ComboBox comboBox)
         {
             DataGridHelper.SyncColumnProperty(this, comboBox, ItemsSourceProperty);
+            DataGridHelper.SyncColumnProperty(this, comboBox, ItemTemplateProperty);
+            DataGridHelper.SyncColumnProperty(this, comboBox, HorizontalContentAlignmentProperty);
+            DataGridHelper.SyncColumnProperty(this, comboBox, VerticalContentAlignmentProperty);
             comboBox.DisplayMemberBinding = CreateDisplayMemberBinding();
             comboBox.SelectedValueBinding = CreateSelectedValuePathBinding();
         }
