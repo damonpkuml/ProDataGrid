@@ -133,9 +133,15 @@ namespace Avalonia.Controls
         public void RecalculateAll()
         {
             if (_disposed) return;
+            if (_owner.ShowTotalSummary)
+            {
+                RecalculateTotalSummaries();
+            }
 
-            RecalculateTotalSummaries();
-            RecalculateAllGroupSummaries();
+            if (_owner.ShowGroupSummary)
+            {
+                RecalculateAllGroupSummaries();
+            }
         }
 
         /// <summary>
