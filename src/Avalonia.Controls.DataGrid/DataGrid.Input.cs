@@ -8,11 +8,13 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Utils;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Reactive;
 using Avalonia.Utilities;
 using Avalonia.VisualTree;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Avalonia.Controls
 {
@@ -30,76 +32,94 @@ namespace Avalonia.Controls
         public static readonly RoutedEvent<DataGridCellPointerPressedEventArgs> CellPointerPressedEvent =
             RoutedEvent.Register<DataGrid, DataGridCellPointerPressedEventArgs>(nameof(CellPointerPressed), RoutingStrategies.Bubble);
 
+        private IDisposable _keyDownRouteFinishedSubscription;
+        private IDisposable _keyUpRouteFinishedSubscription;
+        private DataGridKeyboardGestures _defaultKeyboardGestures;
+
         //TODO TabStop
         //TODO FlowDirection
         private bool ProcessDataGridKey(KeyEventArgs e)
         {
             using var _ = BeginSelectionChangeScope(DataGridSelectionChangeSource.Keyboard, e);
 
-            bool focusDataGrid = false;
-            switch (e.Key)
+            var overrides = KeyboardGestureOverrides;
+            var defaults = GetDefaultKeyboardGestures();
+
+            var tabGesture = ResolveGesture(overrides?.Tab, defaults.Tab);
+            var beginEditGesture = ResolveGesture(overrides?.BeginEdit, defaults.BeginEdit);
+            if (MatchesGesture(tabGesture, e, allowAdditionalModifiers: true))
             {
-                case Key.Tab:
-                    return ProcessTabKey(e);
-
-                case Key.Up:
-                    focusDataGrid = ProcessUpKey(e);
-                    break;
-
-                case Key.Down:
-                    focusDataGrid = ProcessDownKey(e);
-                    break;
-
-                case Key.PageDown:
-                    focusDataGrid = ProcessNextKey(e);
-                    break;
-
-                case Key.PageUp:
-                    focusDataGrid = ProcessPriorKey(e);
-                    break;
-
-                case Key.Left:
-                    focusDataGrid = ProcessLeftKey(e);
-                    break;
-
-                case Key.Right:
-                    focusDataGrid = ProcessRightKey(e);
-                    break;
-
-                case Key.F2:
-                    return ProcessF2Key(e);
-
-                case Key.Home:
-                    focusDataGrid = ProcessHomeKey(e);
-                    break;
-
-                case Key.End:
-                    focusDataGrid = ProcessEndKey(e);
-                    break;
-
-                case Key.Enter:
-                    focusDataGrid = ProcessEnterKey(e);
-                    break;
-
-                case Key.Escape:
-                    return ProcessEscapeKey();
-
-                case Key.A:
-                    return ProcessAKey(e);
-
-                case Key.C:
-                    return ProcessCopyKey(e.KeyModifiers);
-
-                case Key.Insert:
-                    return ProcessCopyKey(e.KeyModifiers);
-
-                case Key.Delete:
-                    return ProcessDeleteKey();
-
-                case Key.Multiply:
-                    focusDataGrid = ProcessMultiplyKey(e);
-                    break;
+                return ProcessTabKey(e, allowCtrl: AllowsCtrlModifier(tabGesture));
             }
+
+            bool focusDataGrid = false;
+
+            if (MatchesGesture(ResolveGesture(overrides?.MoveUp, defaults.MoveUp), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessUpKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MoveDown, defaults.MoveDown), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessDownKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MovePageDown, defaults.MovePageDown), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessNextKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MovePageUp, defaults.MovePageUp), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessPriorKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MoveLeft, defaults.MoveLeft), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessLeftKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MoveRight, defaults.MoveRight), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessRightKey(e);
+            }
+            else if (MatchesGesture(beginEditGesture, e, allowAdditionalModifiers: false))
+            {
+                return ProcessF2Key(e);
+            }
+            else if (MatchesDefaultBeginEditWithAlt(e, overrides, beginEditGesture))
+            {
+                return ProcessF2Key(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MoveHome, defaults.MoveHome), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessHomeKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.MoveEnd, defaults.MoveEnd), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessEndKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.Enter, defaults.Enter), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessEnterKey(e);
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.CancelEdit, defaults.CancelEdit), e, allowAdditionalModifiers: true))
+            {
+                return ProcessEscapeKey();
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.SelectAll, defaults.SelectAll), e, allowAdditionalModifiers: false))
+            {
+                return ProcessAKey();
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.Copy, defaults.Copy), e, allowAdditionalModifiers: false) ||
+                     MatchesGesture(ResolveGesture(overrides?.CopyAlternate, defaults.CopyAlternate), e, allowAdditionalModifiers: false))
+            {
+                return ProcessCopyKey();
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.Delete, defaults.Delete), e, allowAdditionalModifiers: true))
+            {
+                return ProcessDeleteKey();
+            }
+            else if (MatchesGesture(ResolveGesture(overrides?.ExpandAll, defaults.ExpandAll), e, allowAdditionalModifiers: true))
+            {
+                focusDataGrid = ProcessMultiplyKey(e);
+            }
+
             if (focusDataGrid)
             {
                 Focus();
@@ -107,14 +127,98 @@ namespace Avalonia.Controls
             return focusDataGrid;
         }
 
-
-
-
-
-
-        private bool ProcessTabKey(KeyEventArgs e, bool shift, bool ctrl)
+        private DataGridKeyboardGestures GetDefaultKeyboardGestures()
         {
-            if (ctrl || _editingColumnIndex == -1 || IsReadOnly)
+            if (_defaultKeyboardGestures == null)
+            {
+                _defaultKeyboardGestures = DataGridKeyboardGestures.CreateDefault(GetCommandModifiers());
+            }
+
+            return _defaultKeyboardGestures;
+        }
+
+        private KeyModifiers GetCommandModifiers()
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            return topLevel?.PlatformSettings?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
+        }
+
+        private static KeyGesture ResolveGesture(KeyGesture overrideGesture, KeyGesture defaultGesture)
+        {
+            return overrideGesture ?? defaultGesture;
+        }
+
+        private static bool AllowsCtrlModifier(KeyGesture gesture)
+        {
+            if (gesture == null)
+            {
+                return false;
+            }
+
+            return (gesture.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) != 0;
+        }
+
+        private static bool MatchesGesture(KeyGesture gesture, KeyEventArgs e, bool allowAdditionalModifiers)
+        {
+            if (gesture == null || gesture.Key == Key.None)
+            {
+                return false;
+            }
+
+            if (NormalizeGestureKey(e.Key) != NormalizeGestureKey(gesture.Key))
+            {
+                return false;
+            }
+
+            if (allowAdditionalModifiers)
+            {
+                return (e.KeyModifiers & gesture.KeyModifiers) == gesture.KeyModifiers;
+            }
+
+            return e.KeyModifiers == gesture.KeyModifiers;
+        }
+
+        private bool MatchesDefaultBeginEditWithAlt(KeyEventArgs e, DataGridKeyboardGestures overrides, KeyGesture beginEditGesture)
+        {
+            if (overrides?.BeginEdit != null || beginEditGesture == null)
+            {
+                return false;
+            }
+
+            if (beginEditGesture.Key != Key.F2 || beginEditGesture.KeyModifiers != KeyModifiers.None)
+            {
+                return false;
+            }
+
+            KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out bool shift, out bool alt);
+            return !ctrl && !shift && alt && NormalizeGestureKey(e.Key) == Key.F2;
+        }
+
+        private bool ProcessTabKey(KeyEventArgs e, bool allowCtrl)
+        {
+            KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out bool shift);
+            return ProcessTabKey(e, shift, ctrl, allowCtrl);
+        }
+
+        private static Key NormalizeGestureKey(Key key)
+        {
+            return key switch
+            {
+                Key.Add => Key.OemPlus,
+                Key.Subtract => Key.OemMinus,
+                Key.Decimal => Key.OemPeriod,
+                _ => key
+            };
+        }
+
+
+
+
+
+
+        private bool ProcessTabKey(KeyEventArgs e, bool shift, bool ctrl, bool allowCtrl)
+        {
+            if ((!allowCtrl && ctrl) || _editingColumnIndex == -1 || IsReadOnly)
             {
                 //Go to the next/previous control on the page when
                 // - Ctrl key is used
@@ -160,7 +264,7 @@ namespace Avalonia.Controls
                 return false;
             }
 
-            if (WaitForLostFocus(() => ProcessTabKey(e, shift, ctrl)))
+            if (WaitForLostFocus(() => ProcessTabKey(e, shift, ctrl, allowCtrl)))
             {
                 return true;
             }
@@ -775,6 +879,94 @@ namespace Avalonia.Controls
 
 
 
+        private void UpdateKeyboardGestureSubscriptions()
+        {
+            _keyDownRouteFinishedSubscription?.Dispose();
+            _keyDownRouteFinishedSubscription = null;
+            _keyUpRouteFinishedSubscription?.Dispose();
+            _keyUpRouteFinishedSubscription = null;
+
+            if (!IsAttachedToVisualTree)
+            {
+                return;
+            }
+
+            _keyDownRouteFinishedSubscription = InputElement.KeyDownEvent.RouteFinished.Subscribe(OnKeyDownRouteFinished);
+            _keyUpRouteFinishedSubscription = InputElement.KeyUpEvent.RouteFinished.Subscribe(OnKeyUpRouteFinished);
+        }
+
+        private void OnKeyDownRouteFinished(RoutedEventArgs e)
+        {
+            if (e.Handled)
+            {
+                return;
+            }
+
+            var route = e.Route;
+            var isBubble = route.HasFlag(RoutingStrategies.Bubble);
+            var isDirect = route == RoutingStrategies.Direct || route == 0;
+            if (!isBubble && !isDirect)
+            {
+                return;
+            }
+
+            if (e is not KeyEventArgs keyEventArgs)
+            {
+                return;
+            }
+
+            if (!IsKeyEventFromThisGrid(keyEventArgs))
+            {
+                return;
+            }
+
+            DataGrid_KeyDown(this, keyEventArgs);
+        }
+
+        private void OnKeyUpRouteFinished(RoutedEventArgs e)
+        {
+            if (e.Handled)
+            {
+                return;
+            }
+
+            var route = e.Route;
+            var isBubble = route.HasFlag(RoutingStrategies.Bubble);
+            var isDirect = route == RoutingStrategies.Direct || route == 0;
+            if (!isBubble && !isDirect)
+            {
+                return;
+            }
+
+            if (e is not KeyEventArgs keyEventArgs)
+            {
+                return;
+            }
+
+            if (!IsKeyEventFromThisGrid(keyEventArgs))
+            {
+                return;
+            }
+
+            DataGrid_KeyUp(this, keyEventArgs);
+        }
+
+        private bool IsKeyEventFromThisGrid(KeyEventArgs e)
+        {
+            if (ReferenceEquals(e.Source, this))
+            {
+                return true;
+            }
+
+            if (e.Source is Visual visual)
+            {
+                var grid = visual.GetSelfAndVisualAncestors().OfType<DataGrid>().FirstOrDefault();
+                return grid == this;
+            }
+
+            return false;
+        }
+
         private void DataGrid_KeyDown(object sender, KeyEventArgs e)
         {
             if (!e.Handled)
@@ -786,7 +978,27 @@ namespace Avalonia.Controls
 
         private void DataGrid_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Tab && CurrentColumnIndex != -1 && e.Source == this)
+            if (e.Handled)
+            {
+                return;
+            }
+
+            var overrides = KeyboardGestureOverrides;
+            var defaults = GetDefaultKeyboardGestures();
+            var tabGesture = ResolveGesture(overrides?.Tab, defaults.Tab);
+
+            if (!MatchesGesture(tabGesture, e, allowAdditionalModifiers: true))
+            {
+                return;
+            }
+
+            KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out _);
+            if (ctrl && !AllowsCtrlModifier(tabGesture))
+            {
+                return;
+            }
+
+            if (CurrentColumnIndex != -1 && e.Source == this)
             {
                 bool success =
                     ScrollSlotIntoView(

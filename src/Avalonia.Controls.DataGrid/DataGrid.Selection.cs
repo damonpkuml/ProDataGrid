@@ -180,6 +180,13 @@ namespace Avalonia.Controls
                             _selectionModelAdapter.Deselect(rowIndex);
                             break;
                         case DataGridSelectionAction.SelectFromAnchorToCurrent:
+                            if (_selectionModelAdapter.Model.SingleSelect)
+                            {
+                                _selectionModelAdapter.Clear();
+                                _selectionModelAdapter.Select(rowIndex);
+                                break;
+                            }
+
                             if (AnchorSlot != -1)
                             {
                                 int anchorIndex = SelectionIndexFromSlot(AnchorSlot);

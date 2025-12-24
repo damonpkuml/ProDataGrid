@@ -158,7 +158,7 @@ namespace Avalonia.Controls
         /// </summary>
         public DataGridRowGroupHeader()
         {
-            AddHandler(InputElement.PointerPressedEvent, (s, e) => DataGridRowGroupHeader_PointerPressed(e), handledEventsToo: true);
+            AddHandler(InputElement.PointerPressedEvent, (s, e) => DataGridRowGroupHeader_PointerPressed(e));
         }
 
         internal DataGridRowHeader HeaderCell
@@ -359,6 +359,11 @@ namespace Avalonia.Controls
         private void DataGridRowGroupHeader_PointerPressed(PointerPressedEventArgs e)
         {
             if (OwningGrid == null)
+            {
+                return;
+            }
+
+            if (e.Handled)
             {
                 return;
             }

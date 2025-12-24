@@ -98,6 +98,9 @@
     <TabItem Header="Routed events">
       <pages:RoutedEventsPage />
     </TabItem>
+    <TabItem Header="Keyboard Overrides">
+      <pages:KeyboardGestureHandlingPage />
+    </TabItem>
     <TabItem Header="Large Variable Height">
       <local:LargeVariableHeightPage />
     </TabItem>

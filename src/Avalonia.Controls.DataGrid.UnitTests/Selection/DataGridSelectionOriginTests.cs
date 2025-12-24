@@ -123,6 +123,7 @@ public class DataGridSelectionOriginTests
         var keyArgs = new KeyEventArgs
         {
             RoutedEvent = InputElement.KeyDownEvent,
+            Route = InputElement.KeyDownEvent.RoutingStrategies,
             Source = grid,
             Key = Key.Down,
             PhysicalKey = PhysicalKey.ArrowDown,
@@ -130,7 +131,7 @@ public class DataGridSelectionOriginTests
             KeyDeviceType = KeyDeviceType.Keyboard
         };
 
-        grid.RaiseEvent(keyArgs);
+        InvokeDataGridKeyDown(grid, keyArgs);
         grid.UpdateLayout();
 
         Assert.NotNull(args);
@@ -182,6 +183,14 @@ public class DataGridSelectionOriginTests
         root.Content = grid;
         root.Show();
         return grid;
+    }
+
+    private static void InvokeDataGridKeyDown(DataGrid grid, KeyEventArgs args)
+    {
+        var method = typeof(DataGrid).GetMethod(
+            "DataGrid_KeyDown",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        method?.Invoke(grid, new object[] { grid, args });
     }
 
     private static DataGrid CreateGrid(IEnumerable items, SelectionModel<string> selection)

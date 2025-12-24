@@ -564,6 +564,25 @@ namespace Avalonia.Controls
             set { SetValue(SelectionUnitProperty, value); }
         }
 
+        /// <summary>
+        /// Defines the <see cref="KeyboardGestureOverrides"/> property.
+        /// </summary>
+        public static readonly StyledProperty<DataGridKeyboardGestures> KeyboardGestureOverridesProperty =
+            AvaloniaProperty.Register<DataGrid, DataGridKeyboardGestures>(nameof(KeyboardGestureOverrides));
+
+        /// <summary>
+        /// Gets or sets gesture overrides for built-in keyboard handling.
+        /// </summary>
+        /// <remarks>
+        /// When set, any non-null gesture replaces the default mapping for that action.
+        /// Use <see cref="KeyGesture.Key"/> set to <see cref="Key.None"/> to disable an action.
+        /// </remarks>
+        public DataGridKeyboardGestures KeyboardGestureOverrides
+        {
+            get { return GetValue(KeyboardGestureOverridesProperty); }
+            set { SetValue(KeyboardGestureOverridesProperty, value); }
+        }
+
         public static readonly StyledProperty<IBrush> VerticalGridLinesBrushProperty =
             AvaloniaProperty.Register<DataGrid, IBrush>(nameof(VerticalGridLinesBrush));
 

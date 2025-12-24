@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:DataGridSample.Controls"
+             x:Class="DataGridSample.Controls.KeyboardGestureHelpPopup"
+             x:DataType="controls:KeyboardGestureHelpPopup"
+             x:Name="Root">
+  <Border Padding="12"
+          Background="#FFF8F8F8"
+          BorderBrush="#22000000"
+          BorderThickness="1"
+          CornerRadius="6"
+          MinWidth="420"
+          MaxWidth="560">
+    <StackPanel Spacing="8">
+      <TextBlock Text="Keyboard shortcuts" Classes="h3" />
+
+      <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="2*,2*,2*" Margin="0 0 0 6">
+          <TextBlock Text="Action" FontWeight="Bold" />
+          <TextBlock Grid.Column="1" Text="Default" FontWeight="Bold" />
+          <TextBlock Grid.Column="2" Text="Override" FontWeight="Bold" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" MaxHeight="360">
+          <ItemsControl ItemsSource="{Binding Items, ElementName=Root}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="controls:KeyboardGestureHelpItem">
+                <Grid ColumnDefinitions="2*,2*,2*" Margin="0 2">
+                  <TextBlock Text="{Binding Action}" />
+                  <TextBlock Grid.Column="1" Text="{Binding DefaultGesture}" />
+                  <TextBlock Grid.Column="2" Text="{Binding OverrideGesture}" />
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+
+      <TextBlock Text="Override gestures by setting DataGrid.KeyboardGestureOverrides; use Key.None to disable an action."
+                 FontSize="11"
+                 Foreground="#666"
+                 TextWrapping="Wrap" />
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:DataGridSample.Controls"
+             xmlns:models="clr-namespace:DataGridSample.Models"
+             xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
+             x:Class="DataGridSample.Pages.KeyboardGestureHandlingPage"
+             x:DataType="viewModels:KeyboardGestureHandlingViewModel">
+  <UserControl.DataContext>
+    <viewModels:KeyboardGestureHandlingViewModel />
+  </UserControl.DataContext>
+
+  <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8" Margin="12">
+    <StackPanel Grid.Row="0" Spacing="4">
+      <TextBlock Classes="h2">Keyboard overrides</TextBlock>
+      <TextBlock Text="Built-in key handling respects Handled and uses KeyboardGestureOverrides for remapping (try J/K for navigation)." TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
+      <CheckBox VerticalAlignment="Center"
+                Content="Use Vim navigation (J/K)"
+                IsChecked="{Binding UseVimNavigation}" />
+      <ToggleButton x:Name="KeyboardShortcutsToggle"
+                    VerticalAlignment="Center"
+                    Content="Keyboard shortcuts" />
+      <Popup PlacementTarget="{Binding #KeyboardShortcutsToggle}"
+             Placement="Bottom"
+             IsOpen="{Binding #KeyboardShortcutsToggle.IsChecked, Mode=TwoWay}"
+             IsLightDismissEnabled="True"
+             DataContext="{Binding #KeyboardShortcutsToggle.DataContext}">
+        <controls:KeyboardGestureHelpPopup Overrides="{Binding KeyboardGestureOverrides}" />
+      </Popup>
+      <TextBlock VerticalAlignment="Center" Text="Last key:" />
+      <TextBlock VerticalAlignment="Center" Text="{Binding LastKey}" />
+    </StackPanel>
+
+    <DataGrid Grid.Row="2"
+              ItemsSource="{Binding People}"
+              KeyboardGestureOverrides="{Binding KeyboardGestureOverrides}"
+              AutoGenerateColumns="False"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              SelectionMode="Single"
+              SelectionUnit="FullRow"
+              KeyDown="OnGridKeyDown">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="First" Binding="{Binding FirstName}" Width="2*" x:DataType="models:Person" />
+        <DataGridTextColumn Header="Last" Binding="{Binding LastName}" Width="2*" x:DataType="models:Person" />
+        <DataGridTextColumn Header="Age" Binding="{Binding Age}" Width="*" x:DataType="models:Person" />
+        <DataGridCheckBoxColumn Header="Is Banned" Binding="{Binding IsBanned}" Width="*" x:DataType="models:Person" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

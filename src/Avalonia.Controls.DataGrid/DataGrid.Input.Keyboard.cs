@@ -20,29 +20,28 @@ namespace Avalonia.Controls
 {
     partial class DataGrid
     {
-        private bool ProcessAKey(KeyEventArgs e)
+        private bool ProcessAKey()
         {
-            KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out bool shift, out bool alt);
-
-            if (ctrl && !shift && !alt && SelectionMode == DataGridSelectionMode.Extended)
+            if (SelectionMode != DataGridSelectionMode.Extended)
             {
-                if (SelectionUnit == DataGridSelectionUnit.FullRow)
-                {
-                    SelectAll();
-                }
-                else
-                {
-                    SelectAllCells();
-                }
-                return true;
+                return false;
             }
-            return false;
+
+            if (SelectionUnit == DataGridSelectionUnit.FullRow)
+            {
+                SelectAll();
+            }
+            else
+            {
+                SelectAllCells();
+            }
+            return true;
         }
 
         private bool ProcessTabKey(KeyEventArgs e)
         {
             KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out bool shift);
-            return ProcessTabKey(e, shift, ctrl);
+            return ProcessTabKey(e, shift, ctrl, allowCtrl: false);
         }
 
         internal bool ProcessDownKey(KeyEventArgs e)
@@ -297,11 +296,8 @@ namespace Avalonia.Controls
 
         private bool ProcessF2Key(KeyEventArgs e)
         {
-            KeyboardHelper.GetMetaKeyState(this, e.KeyModifiers, out bool ctrl, out bool shift);
-
-            if (!shift && !ctrl &&
-            _editingColumnIndex == -1 && CurrentColumnIndex != -1 && GetRowSelection(CurrentSlot) &&
-            !GetColumnEffectiveReadOnlyState(CurrentColumn))
+            if (_editingColumnIndex == -1 && CurrentColumnIndex != -1 && GetRowSelection(CurrentSlot) &&
+                !GetColumnEffectiveReadOnlyState(CurrentColumn))
             {
                 if (ScrollSlotIntoView(CurrentColumnIndex, CurrentSlot, forCurrentCellChange: false, forceHorizontalScroll: true))
                 {

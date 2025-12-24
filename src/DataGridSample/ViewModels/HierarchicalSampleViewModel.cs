@@ -8,8 +8,10 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using Avalonia.Controls;
 using Avalonia.Controls.DataGridHierarchical;
 using Avalonia.Controls.DataGridSorting;
+using Avalonia.Input;
 using DataGridSample.Mvvm;
 
 namespace DataGridSample.ViewModels
@@ -87,6 +89,9 @@ namespace DataGridSample.ViewModels
             {
                 Model.Refresh(Model.Root);
             });
+
+            _useVimNavigation = false;
+            UpdateGestureOverrides();
         }
 
         public HierarchicalModel<TreeItem> Model { get; }
@@ -100,6 +105,45 @@ namespace DataGridSample.ViewModels
         public RelayCommand CollapseAllCommand { get; }
 
         public RelayCommand RefreshRootCommand { get; }
+
+        private bool _useVimNavigation;
+
+        public bool UseVimNavigation
+        {
+            get => _useVimNavigation;
+            set
+            {
+                if (SetProperty(ref _useVimNavigation, value))
+                {
+                    UpdateGestureOverrides();
+                }
+            }
+        }
+
+        private DataGridKeyboardGestures? _keyboardGestureOverrides;
+
+        public DataGridKeyboardGestures? KeyboardGestureOverrides
+        {
+            get => _keyboardGestureOverrides;
+            set => SetProperty(ref _keyboardGestureOverrides, value);
+        }
+
+        private void UpdateGestureOverrides()
+        {
+            if (_useVimNavigation)
+            {
+                KeyboardGestureOverrides = new DataGridKeyboardGestures
+                {
+                    MoveDown = new KeyGesture(Key.J),
+                    MoveUp = new KeyGesture(Key.K),
+                    ExpandAll = new KeyGesture(Key.E)
+                };
+            }
+            else
+            {
+                KeyboardGestureOverrides = null;
+            }
+        }
 
         private TreeItem CreateRoot(string path)
         {

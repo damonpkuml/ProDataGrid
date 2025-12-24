@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
-using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
@@ -375,7 +375,7 @@ public class DataGridClipboardExportTests
             return false;
         }
 
-        return method.Invoke(grid, new object[] { KeyModifiers.Control }) is true;
+        return method.Invoke(grid, Array.Empty<object>()) is true;
     }
 
     private static async Task<IAsyncDataTransfer?> WaitForClipboardAsync(TopLevel root)

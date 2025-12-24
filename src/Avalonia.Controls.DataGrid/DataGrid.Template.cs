@@ -119,6 +119,7 @@ namespace Avalonia.Controls
             }
 
             TryExecutePendingAutoScroll();
+            UpdateKeyboardGestureSubscriptions();
         }
 
 
@@ -133,6 +134,7 @@ namespace Avalonia.Controls
             }
 
             DisposeSummaryService();
+            UpdateKeyboardGestureSubscriptions();
         }
 
 

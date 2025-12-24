@@ -54,7 +54,7 @@ namespace Avalonia.Controls.Primitives
         /// </summary>
         public DataGridRowHeader()
         {
-            AddHandler(PointerPressedEvent, DataGridRowHeader_PointerPressed, handledEventsToo: true);
+            AddHandler(PointerPressedEvent, DataGridRowHeader_PointerPressed);
         }
 
         static DataGridRowHeader()
@@ -189,6 +189,11 @@ namespace Avalonia.Controls.Primitives
         private void DataGridRowHeader_PointerPressed(object sender, PointerPressedEventArgs e)
         {
             if (OwningGrid == null)
+            {
+                return;
+            }
+
+            if (e.Handled)
             {
                 return;
             }
