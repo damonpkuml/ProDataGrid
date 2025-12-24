@@ -5,7 +5,6 @@
 #nullable disable
 
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Utils;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -43,20 +42,17 @@ namespace Avalonia.Controls
 
 
         /// <summary>
-        /// Handles the case where a 'Copy' key ('C' or 'Insert') has been pressed.  If pressed in combination with
-        /// the control key, and the necessary prerequisites are met, the DataGrid will copy its contents
-        /// to the Clipboard as text.
+        /// Handles the case where a copy gesture has been invoked.
         /// </summary>
         /// <returns>Whether or not the DataGrid handled the key press.</returns>
-        private bool ProcessCopyKey(KeyModifiers modifiers)
+        private bool ProcessCopyKey()
         {
-            KeyboardHelper.GetMetaKeyState(this, modifiers, out bool ctrl, out bool shift, out bool alt);
-
-            if (ctrl && !shift && !alt && ClipboardCopyMode != DataGridClipboardCopyMode.None)
+            if (ClipboardCopyMode == DataGridClipboardCopyMode.None)
             {
-                return CopySelectionToClipboard();
+                return false;
             }
-            return false;
+
+            return CopySelectionToClipboard();
         }
 
         /// <summary>

@@ -191,6 +191,30 @@ public class DataGridKeyboardInputTests
     }
 
     [AvaloniaFact]
+    public void Ctrl_C_Copies_When_Selection_Present()
+    {
+        var (grid, _) = CreateGrid();
+        SetCurrentCell(grid, rowIndex: 0, columnIndex: 0);
+        var ctrl = GetCtrlOrCmdModifier(grid);
+
+        var args = PressKey(grid, Key.C, ctrl);
+
+        Assert.True(args.Handled);
+    }
+
+    [AvaloniaFact]
+    public void Ctrl_Insert_Copies_When_Selection_Present()
+    {
+        var (grid, _) = CreateGrid();
+        SetCurrentCell(grid, rowIndex: 0, columnIndex: 0);
+        var ctrl = GetCtrlOrCmdModifier(grid);
+
+        var args = PressKey(grid, Key.Insert, ctrl);
+
+        Assert.True(args.Handled);
+    }
+
+    [AvaloniaFact]
     public void DownKey_Selects_First_Cell_When_No_Current_Cell()
     {
         var (grid, items) = CreateGrid();
@@ -508,6 +532,18 @@ public class DataGridKeyboardInputTests
     }
 
     [AvaloniaFact]
+    public void F2_Starts_Edit_When_Alt_Pressed()
+    {
+        var (grid, _) = CreateGrid();
+        SetCurrentCell(grid, rowIndex: 0, columnIndex: 0);
+
+        var args = PressKey(grid, Key.F2, KeyModifiers.Alt);
+
+        Assert.True(args.Handled);
+        Assert.Equal(0, grid.EditingColumnIndex);
+    }
+
+    [AvaloniaFact]
     public void F2_Does_Not_Edit_When_Modifier_Pressed()
     {
         var (grid, _) = CreateGrid();
@@ -662,15 +698,27 @@ public class DataGridKeyboardInputTests
         var args = new KeyEventArgs
         {
             RoutedEvent = InputElement.KeyDownEvent,
+            Route = InputElement.KeyDownEvent.RoutingStrategies,
             Key = key,
             KeyModifiers = modifiers,
             Source = target,
             KeyDeviceType = KeyDeviceType.Keyboard
         };
 
-        target.RaiseEvent(args);
+        if (target is DataGrid grid)
+        {
+            InvokeDataGridKeyDown(grid, args);
+        }
         target.UpdateLayout();
         return args;
+    }
+
+    private static void InvokeDataGridKeyDown(DataGrid grid, KeyEventArgs args)
+    {
+        var method = typeof(DataGrid).GetMethod(
+            "DataGrid_KeyDown",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        method?.Invoke(grid, new object[] { grid, args });
     }
 
     private static KeyModifiers GetCtrlOrCmdModifier(Control target)

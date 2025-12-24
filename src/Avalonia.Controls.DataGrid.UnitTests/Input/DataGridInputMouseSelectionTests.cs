@@ -102,6 +102,31 @@ public class DataGridInputMouseSelectionTests
     }
 
     [AvaloniaFact]
+    public void PointerPressed_Does_Not_Change_Selection_When_Handled()
+    {
+        var (grid, items) = CreateGrid(selectionUnit: DataGridSelectionUnit.FullRow, selectionMode: DataGridSelectionMode.Extended);
+        SetCurrentCell(grid, rowIndex: 0, columnIndex: 0);
+
+        Assert.Single(grid.SelectedItems);
+        Assert.Contains(items[0], grid.SelectedItems.Cast<RowItem>());
+
+        var slot = grid.SlotFromRowIndex(1);
+        var row = grid.DisplayData.GetDisplayedElement(slot) as DataGridRow;
+        Assert.NotNull(row);
+
+        var cell = row!.Cells[0];
+        Assert.NotNull(cell);
+
+        var args = CreateLeftPointerArgs(cell);
+        cell.AddHandler(InputElement.PointerPressedEvent, (_, eventArgs) => eventArgs.Handled = true, RoutingStrategies.Tunnel);
+
+        cell.RaiseEvent(args);
+
+        Assert.Single(grid.SelectedItems);
+        Assert.Contains(items[0], grid.SelectedItems.Cast<RowItem>());
+    }
+
+    [AvaloniaFact]
     public void MouseLeft_CellSelection_Single_Replaces_Selection()
     {
         var (grid, _) = CreateGrid(selectionUnit: DataGridSelectionUnit.Cell, selectionMode: DataGridSelectionMode.Single);

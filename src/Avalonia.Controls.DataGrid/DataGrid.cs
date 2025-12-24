@@ -441,9 +441,6 @@ namespace Avalonia.Controls
         /// </summary>
         public DataGrid()
         {
-            KeyDown += DataGrid_KeyDown;
-            KeyUp += DataGrid_KeyUp;
-
             //TODO: Check if override works
             GotFocus += DataGrid_GotFocus;
             LostFocus += DataGrid_LostFocus;
@@ -898,6 +895,11 @@ namespace Avalonia.Controls
 
         private void DataGrid_PointerActivity(object? sender, PointerEventArgs e)
         {
+            if (e.Handled)
+            {
+                return;
+            }
+
             _lastPointerPosition = e.GetPosition(this);
         }
 

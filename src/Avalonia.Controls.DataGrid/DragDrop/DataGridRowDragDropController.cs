@@ -340,6 +340,11 @@ namespace Avalonia.Controls.DataGridDragDrop
 
         private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
         {
+            if (e.Handled)
+            {
+                return;
+            }
+
             if (!ShouldHandlePointer(e))
             {
                 return;

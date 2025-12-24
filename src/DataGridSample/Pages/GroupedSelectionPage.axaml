@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:DataGridSample.Controls"
              xmlns:models="clr-namespace:DataGridSample.Models"
              xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
              x:Class="DataGridSample.Pages.GroupedSelectionPage"
@@ -13,6 +14,21 @@
       <TextBlock Classes="h2">Grouped Selection</TextBlock>
       <TextBlock Text="Rows are grouped by Region; selection is bound to SelectionModel and skips group headers. Selecting rows keeps state across expand/collapse."
                  TextWrapping="Wrap" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <CheckBox Content="Use Vim navigation (J/K)"
+                  VerticalAlignment="Center"
+                  IsChecked="{Binding UseVimNavigation}" />
+        <ToggleButton x:Name="KeyboardShortcutsToggle"
+                      VerticalAlignment="Center"
+                      Content="Keyboard shortcuts" />
+        <Popup PlacementTarget="{Binding #KeyboardShortcutsToggle}"
+               Placement="Bottom"
+               IsOpen="{Binding #KeyboardShortcutsToggle.IsChecked, Mode=TwoWay}"
+               IsLightDismissEnabled="True"
+               DataContext="{Binding #KeyboardShortcutsToggle.DataContext}">
+          <controls:KeyboardGestureHelpPopup Overrides="{Binding KeyboardGestureOverrides}" />
+        </Popup>
+      </StackPanel>
     </StackPanel>
 
     <DataGrid Grid.Row="1"
@@ -22,6 +38,7 @@
               SelectionMode="Extended"
               AutoGenerateColumns="True"
               HeadersVisibility="All"
+              KeyboardGestureOverrides="{Binding KeyboardGestureOverrides}"
               Height="420" />
 
     <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8">

@@ -10,6 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewModels="clr-namespace:DataGridSample.ViewModels"
     xmlns:adapters="clr-namespace:DataGridSample.Adapters"
+    xmlns:controls="clr-namespace:DataGridSample.Controls"
     xmlns:hier="clr-namespace:Avalonia.Controls.DataGridHierarchical;assembly=Avalonia.Controls.DataGrid"
     x:DataType="viewModels:HierarchicalSampleViewModel"
     d:DesignHeight="720"
@@ -45,6 +46,19 @@
               Command="{Binding CollapseAllCommand}" />
       <Button Content="Refresh root"
               Command="{Binding RefreshRootCommand}" />
+      <CheckBox Content="Use overrides (J/K, E)"
+                VerticalAlignment="Center"
+                IsChecked="{Binding UseVimNavigation}" />
+      <ToggleButton x:Name="KeyboardShortcutsToggle"
+                    VerticalAlignment="Center"
+                    Content="Keyboard shortcuts" />
+      <Popup PlacementTarget="{Binding #KeyboardShortcutsToggle}"
+             Placement="Bottom"
+             IsOpen="{Binding #KeyboardShortcutsToggle.IsChecked, Mode=TwoWay}"
+             IsLightDismissEnabled="True"
+             DataContext="{Binding #KeyboardShortcutsToggle.DataContext}">
+        <controls:KeyboardGestureHelpPopup Overrides="{Binding KeyboardGestureOverrides}" />
+      </Popup>
     </StackPanel>
 
     <DataGrid Grid.Row="2"
@@ -57,7 +71,8 @@
               CanUserSortColumns="True"
               HeadersVisibility="Column"
               GridLinesVisibility="Horizontal"
-              SelectionMode="Single">
+              SelectionMode="Single"
+              KeyboardGestureOverrides="{Binding KeyboardGestureOverrides}">
       <DataGrid.Columns>
         <DataGridHierarchicalColumn Header="Name"
                                     SortMemberPath="Item.Name"

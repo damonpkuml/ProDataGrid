@@ -1203,6 +1203,7 @@ public class DataGridAllCellsEditingHeadlessTests
         return new KeyEventArgs
         {
             RoutedEvent = InputElement.KeyDownEvent,
+            Route = InputElement.KeyDownEvent.RoutingStrategies,
             Key = key,
             KeyModifiers = modifiers,
             Source = target
