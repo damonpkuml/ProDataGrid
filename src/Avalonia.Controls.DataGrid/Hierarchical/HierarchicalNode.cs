@@ -125,6 +125,16 @@ namespace Avalonia.Controls.DataGridHierarchical
         internal NotifyCollectionChangedEventHandler? ChildrenChangedHandler { get; set; }
 
         /// <summary>
+        /// Subscribed notifier for expanded state changes.
+        /// </summary>
+        internal INotifyPropertyChanged? ExpandedStateNotifier { get; set; }
+
+        /// <summary>
+        /// Cached handler to detach expanded state subscription.
+        /// </summary>
+        internal PropertyChangedEventHandler? ExpandedStateChangedHandler { get; set; }
+
+        /// <summary>
         /// Tracks in-flight load cancellation for this node.
         /// </summary>
         internal CancellationTokenSource? LoadCancellation { get; set; }
