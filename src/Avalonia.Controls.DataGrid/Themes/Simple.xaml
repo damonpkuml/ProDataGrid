@@ -34,10 +34,10 @@
       <SolidColorBrush x:Key="DataGridBackgroundBrush" Color="{DynamicResource ThemeBackgroundColor}" />
       <SolidColorBrush x:Key="DataGridBorderBrush" Color="{DynamicResource ThemeBorderLowColor}" />
       <SolidColorBrush x:Key="DataGridDropLocationIndicatorBrush" Color="{DynamicResource ThemeBorderHighColor}" />
-      <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="#F8F8F8" />
-      <SolidColorBrush x:Key="DataGridSearchMatchBrush" Color="#FFF2B6" />
-      <SolidColorBrush x:Key="DataGridSearchCurrentBrush" Color="#FFD37A" />
-      <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="#202020" />
+      <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="{DynamicResource ThemeBackgroundColor}" />
+      <SolidColorBrush x:Key="DataGridSearchMatchBrush" Color="{DynamicResource ThemeAccentColor4}" />
+      <SolidColorBrush x:Key="DataGridSearchCurrentBrush" Color="{DynamicResource ThemeAccentColor3}" />
+      <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="{DynamicResource ThemeForegroundColor}" />
       <StaticResource x:Key="DataGridRowDropIndicatorBrush" ResourceKey="HighlightBrush" />
 
       <!-- Opacity Resources -->

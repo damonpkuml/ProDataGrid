@@ -33,10 +33,14 @@
           <SolidColorBrush x:Key="DataGridSummaryRowForegroundBrush" Color="{DynamicResource SystemBaseHighColor}" />
           <SolidColorBrush x:Key="DataGridTotalSummaryRowBackgroundBrush" Color="{DynamicResource SystemChromeMediumColor}" />
           <SolidColorBrush x:Key="DataGridGroupSummaryRowBackgroundBrush" Color="{DynamicResource SystemChromeLowColor}" />
-          <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="#F8F8F8" />
-          <SolidColorBrush x:Key="DataGridSearchMatchBrush" Color="#FFF2B6" />
-          <SolidColorBrush x:Key="DataGridSearchCurrentBrush" Color="#FFD37A" />
-          <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="#202020" />
+          <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="{DynamicResource SystemChromeMediumLowColor}" />
+          <SolidColorBrush x:Key="DataGridSearchMatchBrush"
+                           Color="{DynamicResource SystemAccentColor}"
+                           Opacity="{DynamicResource ListAccentLowOpacity}" />
+          <SolidColorBrush x:Key="DataGridSearchCurrentBrush"
+                           Color="{DynamicResource SystemAccentColor}"
+                           Opacity="{DynamicResource ListAccentMediumOpacity}" />
+          <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="{DynamicResource SystemBaseHighColor}" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Default">
           <SolidColorBrush x:Key="DataGridColumnHeaderForegroundBrush" Color="{DynamicResource SystemBaseMediumColor}" />
@@ -50,6 +54,7 @@
           <SolidColorBrush x:Key="DataGridRowGroupHeaderHoveredBackgroundBrush" Color="{DynamicResource SystemListLowColor}" />
           <SolidColorBrush x:Key="DataGridRowHoveredBackgroundBrush" Color="{DynamicResource SystemListLowColor}" />
           <SolidColorBrush x:Key="DataGridRowInvalidBrush" Color="{DynamicResource SystemErrorTextColor}" />
+          <SolidColorBrush x:Key="DataGridRowDropIndicatorBrush" Color="{DynamicResource SystemAccentColor}" />
           <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush" Color="{DynamicResource SystemAccentColor}" />
           <SolidColorBrush x:Key="DataGridRowSelectedHoveredBackgroundBrush" Color="{DynamicResource SystemAccentColor}" />
           <SolidColorBrush x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" Color="{DynamicResource SystemAccentColor}" />
@@ -63,10 +68,14 @@
           <SolidColorBrush x:Key="DataGridSummaryRowForegroundBrush" Color="{DynamicResource SystemBaseHighColor}" />
           <SolidColorBrush x:Key="DataGridTotalSummaryRowBackgroundBrush" Color="{DynamicResource SystemChromeMediumColor}" />
           <SolidColorBrush x:Key="DataGridGroupSummaryRowBackgroundBrush" Color="{DynamicResource SystemChromeLowColor}" />
-          <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="#F8F8F8" />
-          <SolidColorBrush x:Key="DataGridSearchMatchBrush" Color="#FFF2B6" />
-          <SolidColorBrush x:Key="DataGridSearchCurrentBrush" Color="#FFD37A" />
-          <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="#202020" />
+          <SolidColorBrush x:Key="DataGridFilterFlyoutBackgroundBrush" Color="{DynamicResource SystemChromeMediumLowColor}" />
+          <SolidColorBrush x:Key="DataGridSearchMatchBrush"
+                           Color="{DynamicResource SystemAccentColor}"
+                           Opacity="{DynamicResource ListAccentLowOpacity}" />
+          <SolidColorBrush x:Key="DataGridSearchCurrentBrush"
+                           Color="{DynamicResource SystemAccentColor}"
+                           Opacity="{DynamicResource ListAccentMediumOpacity}" />
+          <SolidColorBrush x:Key="DataGridSearchMatchForegroundBrush" Color="{DynamicResource SystemBaseHighColor}" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
 
@@ -124,7 +133,7 @@
       <SolidColorBrush x:Key="DataGridFillerColumnGridLinesBrush" Color="Transparent" />
       <SolidColorBrush x:Key="DataGridBackgroundBrush" Color="Transparent" />
       <SolidColorBrush x:Key="DataGridBorderBrush" Color="Transparent" />
-      <SolidColorBrush x:Key="DataGridDropLocationIndicatorBackground" Color="#3F4346" />
+      <SolidColorBrush x:Key="DataGridDropLocationIndicatorBackground" Color="{DynamicResource SystemAccentColor}" />
       <StaticResource x:Key="DataGridDropLocationIndicatorBrush" ResourceKey="DataGridDropLocationIndicatorBackground" />
       <StaticResource x:Key="DataGridCellDataValidationErrorsTheme" ResourceKey="TooltipDataValidationErrors" />
     </ResourceDictionary>
