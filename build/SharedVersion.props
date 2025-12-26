@@ -12,8 +12,6 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>Icon.png</PackageIcon>
-    <PackageDescription>ProDataGrid is a high-performance DataGrid control for Avalonia, a cross-platform UI framework for .NET.</PackageDescription>
-    <PackageTags>avalonia;avaloniaui;datagrid;prodatagrid;mvvm;net;netstandard</PackageTags>
     <PackageReleaseNotes>https://github.com/wieslawsoltes/ProDataGrid/releases</PackageReleaseNotes>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
