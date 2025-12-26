@@ -11,6 +11,11 @@
     <PackageId>ProDiagnostics</PackageId>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageDescription>ProDiagnostics provides developer tools and diagnostics UI for Avalonia apps, including visual tree inspection, property editing, event tracking, layout exploration, and debug overlays.</PackageDescription>
+    <PackageTags>avalonia;avaloniaui;diagnostics;devtools;debugging;visualtree;inspector;prodiagnostics;net;netstandard</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Update="**/*.xaml.cs"
              DependentUpon="%(Filename)" />
