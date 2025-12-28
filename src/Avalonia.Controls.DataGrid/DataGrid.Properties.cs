@@ -652,7 +652,7 @@ internal
         /// </summary>
         /// <remarks>
         /// When set, any non-null gesture replaces the default mapping for that action.
-        /// Use <see cref="KeyGesture.Key"/> set to <see cref="Key.None"/> to disable an action.
+        /// Use <see cref="Avalonia.Input.KeyGesture.Key"/> set to <see cref="Avalonia.Input.Key.None"/> to disable an action.
         /// </remarks>
 #if !DATAGRID_INTERNAL
         public

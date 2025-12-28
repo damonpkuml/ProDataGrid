@@ -155,7 +155,8 @@ internal
             AvaloniaProperty.Register<DataGridComboBoxColumn, string>(nameof(SelectedValuePath), string.Empty);
 
         /// <summary>
-        /// Gets or sets the path on the data item that is used to compute <see cref="ComboBox.SelectedValue"/>.
+        /// Gets or sets the path on the data item that is used to compute
+        /// <see cref="Avalonia.Controls.Primitives.SelectingItemsControl.SelectedValue"/>.
         /// </summary>
         public string SelectedValuePath
         {
@@ -164,7 +165,7 @@ internal
         }
 
         /// <summary>
-        /// The binding applied to <see cref="ComboBox.SelectedItem"/>.
+        /// The binding applied to <see cref="Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItem"/>.
         /// </summary>
         [AssignBinding]
         public IBinding SelectedItemBinding
@@ -182,7 +183,7 @@ internal
         }
 
         /// <summary>
-        /// The binding applied to <see cref="ComboBox.SelectedValue"/>.
+        /// The binding applied to <see cref="Avalonia.Controls.Primitives.SelectingItemsControl.SelectedValue"/>.
         /// </summary>
         [AssignBinding]
         public IBinding SelectedValueBinding
