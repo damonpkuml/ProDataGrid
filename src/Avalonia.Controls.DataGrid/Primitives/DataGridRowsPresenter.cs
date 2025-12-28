@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Controls.Presenters;
 using Avalonia.Utilities;
 using Avalonia.VisualTree;
 using Avalonia;
@@ -313,6 +314,28 @@ internal
                 var allowInfiniteHeight = grid != null &&
                                           double.IsNaN(grid.Height) &&
                                           double.IsInfinity(grid.MaxHeight);
+
+                if (allowInfiniteHeight && grid != null)
+                {
+                    var hasItemsPresenter = false;
+                    for (var ancestor = grid.GetVisualParent(); ancestor != null; ancestor = ancestor.GetVisualParent())
+                    {
+                        if (ancestor is ItemsPresenter)
+                        {
+                            hasItemsPresenter = true;
+                        }
+
+                        if (ancestor is ScrollViewer)
+                        {
+                            if (!hasItemsPresenter)
+                            {
+                                allowInfiniteHeight = false;
+                            }
+
+                            break;
+                        }
+                    }
+                }
 
                 if (!allowInfiniteHeight)
                 {
