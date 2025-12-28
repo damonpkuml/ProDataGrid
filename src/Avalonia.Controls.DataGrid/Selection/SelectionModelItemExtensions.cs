@@ -23,6 +23,12 @@ namespace Avalonia.Controls.Selection
                 throw new ArgumentNullException(nameof(model));
             }
 
+            if (model.Source == null)
+            {
+                model.SelectedItem = item;
+                return;
+            }
+
             var index = ResolveIndex(model.Source, item);
             if (index < 0)
             {

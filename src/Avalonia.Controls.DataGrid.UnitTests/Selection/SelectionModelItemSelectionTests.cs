@@ -54,7 +54,7 @@ public class SelectionModelItemSelectionTests
         selection.Select(child);
 
         Assert.Contains(1, selection.SelectedIndexes);
-        var selectedNode = Assert.IsType<HierarchicalNode>(selection.SelectedItem);
+        var selectedNode = Assert.IsAssignableFrom<IHierarchicalNodeItem>(selection.SelectedItem);
         Assert.Same(child, selectedNode.Item);
     }
 
@@ -66,6 +66,30 @@ public class SelectionModelItemSelectionTests
 
         var exception = Assert.Throws<ArgumentException>(() => selection.Select("C"));
         Assert.Contains("Item not found", exception.Message);
+    }
+
+    [Fact]
+    public void SelectionModel_Select_By_Item_With_Null_Source_Sets_SelectedItem()
+    {
+        var selection = new SelectionModel<string>();
+
+        selection.Select("B");
+
+        Assert.Equal("B", selection.SelectedItem);
+        Assert.Single(selection.SelectedItems);
+        Assert.Equal("B", selection.SelectedItems[0]);
+    }
+
+    [Fact]
+    public void SelectionModel_Select_By_Item_With_Null_Source_Allows_MultiSelect()
+    {
+        var selection = new SelectionModel<string> { SingleSelect = false };
+
+        selection.Select("B");
+
+        Assert.Equal("B", selection.SelectedItem);
+        Assert.Single(selection.SelectedItems);
+        Assert.Equal("B", selection.SelectedItems[0]);
     }
 
     [AvaloniaFact]
@@ -108,7 +132,7 @@ public class SelectionModelItemSelectionTests
         });
 
         model.SetRoot(root);
-        model.Expand(model.Root!);
+        model.Expand(model.Root ?? throw new InvalidOperationException("Root node not created."));
         return model;
     }
 }
