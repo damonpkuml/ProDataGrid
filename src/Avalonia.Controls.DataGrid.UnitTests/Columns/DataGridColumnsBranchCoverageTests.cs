@@ -336,9 +336,9 @@ public class DataGridColumnsBranchCoverageTests
 
         var current = grid.ColumnsInternal[0];
         current.IsVisible = true;
-        grid.OnColumnVisibleStateChanging(current);
+        grid.OnColumnVisibleStateChanging(current, wasVisible: true, isVisible: false);
 
-        grid.OnColumnVisibleStateChanging(grid.ColumnsInternal[1]);
+        grid.OnColumnVisibleStateChanging(grid.ColumnsInternal[1], wasVisible: true, isVisible: false);
 
         current.IsVisible = false;
         grid.OnColumnVisibleStateChanged(current);
@@ -352,13 +352,13 @@ public class DataGridColumnsBranchCoverageTests
         var onlyColumn = grid.ColumnsInternal[0];
 
         onlyColumn.IsVisible = true;
-        grid.OnColumnVisibleStateChanging(onlyColumn);
+        grid.OnColumnVisibleStateChanging(onlyColumn, wasVisible: true, isVisible: false);
 
         var (grid2, _, _) = CreateGrid(rowCount: 1, columnCount: 2);
         SetCurrentCell(grid2, rowIndex: 0, columnIndex: 1);
         var last = grid2.ColumnsInternal[1];
         last.IsVisible = true;
-        grid2.OnColumnVisibleStateChanging(last);
+        grid2.OnColumnVisibleStateChanging(last, wasVisible: true, isVisible: false);
     }
 
     [AvaloniaFact]

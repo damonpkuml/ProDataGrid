@@ -73,6 +73,8 @@ internal
                     return;
                 }
 
+                columnIndex = CoerceColumnIndexToVisible(columnIndex);
+
                 ApplySelectionActionToSelectionModel(slot, action);
 
                 switch (action)
@@ -115,9 +117,10 @@ internal
                 {
                     if (columnIndex == -1)
                     {
-                        if (CurrentColumnIndex != -1)
+                        var fallbackColumnIndex = CoerceColumnIndexToVisible(CurrentColumnIndex);
+                        if (fallbackColumnIndex != -1)
                         {
-                            columnIndex = CurrentColumnIndex;
+                            columnIndex = fallbackColumnIndex;
                         }
                         else
                         {
@@ -146,7 +149,7 @@ internal
                 {
                     if (scrollColumnIndex == -1)
                     {
-                        scrollColumnIndex = CurrentColumnIndex;
+                        scrollColumnIndex = CoerceColumnIndexToVisible(CurrentColumnIndex);
                         if (scrollColumnIndex == -1)
                         {
                             DataGridColumn firstVisibleColumn = ColumnsInternal.FirstVisibleNonFillerColumn;
@@ -173,6 +176,22 @@ internal
                 NoCurrentCellChangeCount--;
                 NoSelectionChangeCount--;
             }
+        }
+
+        private int CoerceColumnIndexToVisible(int columnIndex)
+        {
+            if (columnIndex < 0 || columnIndex >= ColumnsItemsInternal.Count)
+            {
+                return -1;
+            }
+
+            if (ColumnsItemsInternal[columnIndex].IsVisible)
+            {
+                return columnIndex;
+            }
+
+            var fallbackColumn = ColumnsInternal.FirstVisibleNonFillerColumn;
+            return fallbackColumn?.Index ?? -1;
         }
 
         private void ApplySelectionActionToSelectionModel(int slot, DataGridSelectionAction action)

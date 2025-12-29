@@ -550,11 +550,12 @@ internal
             UpdateSearchAdapterView();
         }
 
-        internal void OnColumnVisibleStateChanging(DataGridColumn targetColumn)
+        internal void OnColumnVisibleStateChanging(DataGridColumn targetColumn, bool wasVisible, bool isVisible)
         {
             Debug.Assert(targetColumn != null);
 
-            if (targetColumn.IsVisible &&
+            if (wasVisible &&
+                !isVisible &&
                 CurrentColumn == targetColumn)
             {
                 // Column of the current cell is made invisible. Trying to move the current cell to a neighbor column. May throw an exception.

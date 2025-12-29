@@ -239,8 +239,9 @@ internal
 
             if (change.Property == IsVisibleProperty)
             {
-                OwningGrid?.OnColumnVisibleStateChanging(this);
+                var wasVisible = change.GetOldValue<bool>();
                 var isVisible = change.GetNewValue<bool>();
+                OwningGrid?.OnColumnVisibleStateChanging(this, wasVisible, isVisible);
 
                 if (_headerCell != null)
                 {

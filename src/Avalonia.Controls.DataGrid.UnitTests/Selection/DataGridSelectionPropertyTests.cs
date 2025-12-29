@@ -106,6 +106,119 @@ public class DataGridSelectionPropertyTests
     }
 
     [AvaloniaFact]
+    public void Hiding_Current_Column_Moves_CurrentCell_To_Visible_Column()
+    {
+        var items = new ObservableCollection<VisibleColumnItem>
+        {
+            new("A", 1),
+            new("B", 2)
+        };
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150
+        };
+
+        root.SetThemeStyles();
+
+        var grid = new DataGrid
+        {
+            ItemsSource = items,
+            SelectionMode = DataGridSelectionMode.Single
+        };
+
+        var firstColumn = new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding(nameof(VisibleColumnItem.Name))
+        };
+        var secondColumn = new DataGridTextColumn
+        {
+            Header = "Value",
+            Binding = new Binding(nameof(VisibleColumnItem.Value))
+        };
+
+        grid.ColumnsInternal.Add(firstColumn);
+        grid.ColumnsInternal.Add(secondColumn);
+
+        root.Content = grid;
+        root.Show();
+        grid.UpdateLayout();
+
+        grid.SelectedIndex = 0;
+        grid.UpdateLayout();
+
+        Assert.True(grid.CurrentCell.IsValid);
+        Assert.Equal(firstColumn.Index, grid.CurrentCell.ColumnIndex);
+
+        firstColumn.IsVisible = false;
+        grid.UpdateLayout();
+
+        Assert.True(grid.CurrentCell.IsValid);
+        Assert.NotEqual(firstColumn.Index, grid.CurrentCell.ColumnIndex);
+        Assert.True(grid.CurrentCell.Column.IsVisible);
+
+        grid.SelectedIndex = 1;
+        grid.UpdateLayout();
+
+        Assert.True(grid.CurrentCell.IsValid);
+        Assert.True(grid.CurrentCell.Column.IsVisible);
+    }
+
+    [AvaloniaFact]
+    public void UpdateSelectionAndCurrency_Coerces_Hidden_Column()
+    {
+        var items = new ObservableCollection<VisibleColumnItem>
+        {
+            new("A", 1),
+            new("B", 2)
+        };
+
+        var root = new Window
+        {
+            Width = 250,
+            Height = 150
+        };
+
+        root.SetThemeStyles();
+
+        var grid = new DataGrid
+        {
+            ItemsSource = items,
+            SelectionMode = DataGridSelectionMode.Single
+        };
+
+        var hiddenColumn = new DataGridTextColumn
+        {
+            Header = "Name",
+            Binding = new Binding(nameof(VisibleColumnItem.Name))
+        };
+        var visibleColumn = new DataGridTextColumn
+        {
+            Header = "Value",
+            Binding = new Binding(nameof(VisibleColumnItem.Value))
+        };
+
+        grid.ColumnsInternal.Add(hiddenColumn);
+        grid.ColumnsInternal.Add(visibleColumn);
+
+        root.Content = grid;
+        root.Show();
+        grid.UpdateLayout();
+
+        hiddenColumn.IsVisible = false;
+        grid.UpdateLayout();
+
+        Assert.True(grid.UpdateSelectionAndCurrency(hiddenColumn.Index, slot: 0, DataGridSelectionAction.SelectCurrent, scrollIntoView: false));
+        grid.UpdateLayout();
+
+        Assert.True(grid.CurrentCell.IsValid);
+        Assert.True(grid.CurrentCell.Column.IsVisible);
+        Assert.Equal(visibleColumn.Index, grid.CurrentCell.ColumnIndex);
+    }
+
+    [AvaloniaFact]
     public void Replacing_Selection_Raises_Removed_SelectionChanged()
     {
         var items = new ObservableCollection<string> { "A", "B" };
@@ -496,6 +609,19 @@ public class DataGridSelectionPropertyTests
         root.Content = grid;
         root.Show();
         return grid;
+    }
+
+    private sealed class VisibleColumnItem
+    {
+        public VisibleColumnItem(string name, int value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public string Name { get; }
+
+        public int Value { get; }
     }
 
     private static DataGrid CreateGrid(IEnumerable items, SelectionModel<Item> selection)
