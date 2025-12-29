@@ -131,6 +131,24 @@ public class DataGridCollectionViewTests
     }
 
     [Fact]
+    public void Remove_Filtered_Out_Item_Does_Not_Raise_Remove()
+    {
+        var items = new ObservableCollection<int> { 1, 2, 3, 4 };
+        var view = new DataGridCollectionView(items)
+        {
+            Filter = item => (int)item % 2 == 0
+        };
+
+        var changes = new List<NotifyCollectionChangedEventArgs>();
+        view.CollectionChanged += (_, e) => changes.Add(e);
+
+        items.Remove(1);
+
+        Assert.Empty(changes);
+        Assert.Equal(new[] { 2, 4 }, view.Cast<int>().ToArray());
+    }
+
+    [Fact]
     public void Replace_Raises_Remove_Then_Add_And_Updates_View()
     {
         var items = new ObservableCollection<int> { 1, 2, 3 };

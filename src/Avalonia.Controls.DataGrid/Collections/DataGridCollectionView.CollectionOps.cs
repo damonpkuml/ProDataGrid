@@ -592,7 +592,15 @@ namespace Avalonia.Collections
             }
 
             // only fire the remove if it was removed from either the current page, or a previous page
-            bool needToRemove = (PageSize == 0 && removeIndex >= 0) || (internalRemoveIndex < (PageIndex + 1) * PageSize);
+            bool needToRemove;
+            if (PageSize == 0)
+            {
+                needToRemove = removeIndex >= 0;
+            }
+            else
+            {
+                needToRemove = internalRemoveIndex >= 0 && internalRemoveIndex < (PageIndex + 1) * PageSize;
+            }
 
             if (IsGrouping)
             {
