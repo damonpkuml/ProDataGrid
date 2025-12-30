@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace Avalonia.Controls
 {
-    public class DataGridExternalSummaryHelper
+#if !DATAGRID_INTERNAL
+public
+#else
+    internal
+#endif
+        class DataGridExternalSummaryHelper
     {
         public static readonly StyledProperty<Dictionary<string, object>> ExternalSummaryProperty =
             AvaloniaProperty.RegisterAttached<DataGridExternalSummaryHelper, DataGrid, Dictionary<string, object>>(

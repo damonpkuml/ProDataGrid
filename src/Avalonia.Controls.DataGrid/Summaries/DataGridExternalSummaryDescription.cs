@@ -12,7 +12,12 @@ namespace Avalonia.Controls
     /// <summary>
     /// 使用外部汇总描述
     /// </summary>
-    public class DataGridExternalSummaryDescription : DataGridSummaryDescription
+#if !DATAGRID_INTERNAL
+public
+#else
+    internal
+#endif
+        class DataGridExternalSummaryDescription : DataGridSummaryDescription
     {
         public override DataGridAggregateType AggregateType => DataGridAggregateType.Custom;
 
