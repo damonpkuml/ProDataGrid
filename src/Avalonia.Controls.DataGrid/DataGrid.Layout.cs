@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Avalonia.Threading;
 
 namespace Avalonia.Controls
 {
@@ -207,10 +208,28 @@ internal
 
         private void OnIsVisibleChanged(AvaloniaPropertyChangedEventArgs e)
         {
-            if (e.NewValue is bool isVisible && !isVisible)
+            if (e.NewValue is not bool isVisible)
+            {
+                return;
+            }
+            
+            if (!isVisible)
             {
                 _scrollStateManager.Capture(preserveOnAttach: false);
                 ResetDisplayedRows();
+                return;
+            }
+            
+            if (ShowTotalSummary || ShowGroupSummary)
+            {
+                Dispatcher.UIThread.Post(
+                    () =>{
+                        if (IsVisible && IsAttachedToVisualTree && (ShowTotalSummary || ShowGroupSummary))
+                        {
+                            UpdateSummaryRowLayout();
+                        }
+                    },
+                    DispatcherPriority.Render);
             }
         }
 

@@ -16,6 +16,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Avalonia.Threading;
 
 namespace Avalonia.Controls
 {
@@ -23,9 +24,7 @@ namespace Avalonia.Controls
     /// Template and initialization
     /// </summary>
 #if !DATAGRID_INTERNAL
-public
-#else
-internal
+    public
 #endif
     partial class DataGrid
     {
@@ -105,6 +104,7 @@ internal
             }
         }
 
+        private bool _initialSummaryLayoutApplied;
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
@@ -121,7 +121,14 @@ internal
             }
 
             TryExecutePendingAutoScroll();
-            UpdateKeyboardGestureSubscriptions();
+            
+            if (_initialSummaryLayoutApplied)
+                return;
+            if (IsVisible && (ShowTotalSummary || ShowGroupSummary))
+            {
+                _initialSummaryLayoutApplied = true;
+                Dispatcher.UIThread.Post(UpdateSummaryRowLayout, DispatcherPriority.Background);
+            }
         }
 
 
@@ -136,7 +143,6 @@ internal
             }
 
             DisposeSummaryService();
-            UpdateKeyboardGestureSubscriptions();
         }
 
 
